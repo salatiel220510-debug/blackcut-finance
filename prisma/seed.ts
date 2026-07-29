@@ -8,18 +8,13 @@ async function main() {
     throw new Error("Defina OWNER_NAME, OWNER_EMAIL e OWNER_PASSWORD no .env antes de rodar o seed.");
   }
 
+  const email = OWNER_EMAIL.toLowerCase().trim();
   const passwordHash = await bcrypt.hash(OWNER_PASSWORD, 10);
 
   const owner = await prisma.user.upsert({
-    where: { email: OWNER_EMAIL },
-    update: {},
-    create: {
-      name: OWNER_NAME,
-      email: OWNER_EMAIL,
-      passwordHash,
-      role: "OWNER",
-      status: "APPROVED",
-    },
+    where: { email },
+    update: { passwordHash, name: OWNER_NAME },
+    create: { name: OWNER_NAME, email, passwordHash, role: "OWNER", status: "APPROVED" },
   });
 
   console.log(`Conta de dono pronta: ${owner.email}`);

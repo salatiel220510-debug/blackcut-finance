@@ -5,7 +5,7 @@ import bcrypt from "bcryptjs";
 
 export async function registrarBarbeiro(formData: FormData) {
   const name = formData.get("name") as string;
-  const email = formData.get("email") as string;
+  const email = (formData.get("email") as string).toLowerCase().trim();
   const password = formData.get("password") as string;
 
   if (!name || !email || !password) {
@@ -20,13 +20,7 @@ export async function registrarBarbeiro(formData: FormData) {
   const passwordHash = await bcrypt.hash(password, 10);
 
   await prisma.user.create({
-    data: {
-      name,
-      email,
-      passwordHash,
-      role: "BARBER",
-      status: "PENDING",
-    },
+    data: { name, email, passwordHash, role: "BARBER", status: "PENDING" },
   });
 
   return { sucesso: true };

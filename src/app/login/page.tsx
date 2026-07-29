@@ -20,7 +20,7 @@ export default function LoginPage() {
   return (
     <form onSubmit={handleSubmit} style={{ padding: 24 }}>
       <h1>BlackCut Finance — Login</h1>
-      <input name="email" type="email" placeholder="Email" required />
+      <input name="email" type="email" placeholder="Email" required autoCapitalize="none" autoCorrect="off" />
       <input name="password" type="password" placeholder="Senha" required />
       <button type="submit">Entrar</button>
       {erro && <p style={{ color: "red" }}>{erro}</p>}
