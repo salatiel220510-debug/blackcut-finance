@@ -17,13 +17,33 @@ async function main() {
     create: { name: OWNER_NAME, email, passwordHash, role: "OWNER", status: "APPROVED" },
   });
 
+  const settings = await prisma.settings.upsert({
+    where: { id: 1 },
+    update: {},
+    create: { id: 1, commissionPercentage: 40.0 },
+  });
+
   console.log(`Conta de dono pronta: ${owner.email}`);
+  const servicosIniciais = [
+  { name: "Corte", price: 28.0 },
+  { name: "Barba", price: 18.0 },
+  { name: "Sobrancelha", price: 10.0 },
+  { name: "Combo", price: 40.0 },
+  { name: "Produto", price: null },
+];
+
+for (const s of servicosIniciais) {
+  await prisma.serviceType.upsert({
+    where: { name: s.name },
+    update: {},
+    create: s,
+  });
+}
+  console.log(`Comissão padrão configurada: ${settings.commissionPercentage}%`);
 }
 
 main()
-  .then(async () => {
-    await prisma.$disconnect();
-  })
+  .then(async () => { await prisma.$disconnect(); })
   .catch(async (e) => {
     console.error(e);
     await prisma.$disconnect();

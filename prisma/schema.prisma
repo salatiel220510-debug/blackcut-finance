@@ -63,3 +63,11 @@ model Settings {
   id                   Int     @id @default(1)
   commissionPercentage Decimal @default(40.00) @db.Decimal(5, 2)
 }
+
+model ServiceType {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  price     Decimal? @db.Decimal(10, 2)
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+}
