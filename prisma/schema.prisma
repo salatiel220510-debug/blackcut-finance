@@ -29,16 +29,19 @@ enum TransactionType {
 }
 
 model User {
-  id           String   @id @default(cuid())
+  id           String        @id @default(cuid())
   name         String
-  email        String   @unique
+  email        String        @unique
   passwordHash String
-  role         Role     @default(BARBER)
+  role         Role          @default(BARBER)
   status       AccountStatus @default(PENDING)
-  createdAt    DateTime @default(now())
+  createdAt    DateTime      @default(now())
 
   servicosRealizados Transaction[] @relation("Barbeiro")
   transacoesCriadas  Transaction[] @relation("CriadoPor")
+
+  @@index([status])
+  @@index([role])
 }
 
 model Transaction {
@@ -49,35 +52,33 @@ model Transaction {
   amount      Decimal         @db.Decimal(10, 2)
   date        DateTime        @default(now())
 
-  barberId              String?
-  barber                User?    @relation("Barbeiro", fields: [barberId], references: [id])
-  commissionPercentage  Decimal? @db.Decimal(5, 2)
-  commissionAmount      Decimal? @db.Decimal(10, 2)
+  barberId             String?
+  barber               User?    @relation("Barbeiro", fields: [barberId], references: [id])
+  commissionPercentage Decimal? @db.Decimal(5, 2)
+  commissionAmount     Decimal? @db.Decimal(10, 2)
 
   createdById String
   createdBy   User     @relation("CriadoPor", fields: [createdById], references: [id])
   createdAt   DateTime @default(now())
+
+  @@index([date])
+  @@index([barberId])
+  @@index([type])
 }
 
 model Settings {
-  id                   Int     @id @default(1)
-  commissionPercentage Decimal @default(40.00) @db.Decimal(5, 2)
+  id                   Int      @id @default(1)
+  commissionPercentage Decimal  @default(40.00) @db.Decimal(5, 2)
+  updatedAt            DateTime @updatedAt
 }
 
 model ServiceType {
-  id        String   @id @default(cuid())
-  name      String   @unique
-  price     Decimal? @db.Decimal(10, 2)
-  active    Boolean  @default(true)
-  createdAt DateTime @default(now())
-}
-
-model ServiceType {
-  id                String   @id @default(cuid())
-  name              String   @unique
-  price             Decimal? @db.Decimal(10, 2)
-  discountPercentage Decimal? @db.Decimal(5, 2)
+  id                 String    @id @default(cuid())
+  name               String    @unique
+  price              Decimal?  @db.Decimal(10, 2)
+  discountPercentage Decimal?  @db.Decimal(5, 2)
   discountValidUntil DateTime?
-  active            Boolean  @default(true)
-  createdAt         DateTime @default(now())
+  active             Boolean   @default(true)
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
 }
