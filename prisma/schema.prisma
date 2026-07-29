@@ -1,0 +1,65 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  OWNER
+  BARBER
+}
+
+enum AccountStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum TransactionType {
+  INCOME
+  EXPENSE
+}
+
+model User {
+  id           String   @id @default(cuid())
+  name         String
+  email        String   @unique
+  passwordHash String
+  role         Role     @default(BARBER)
+  status       AccountStatus @default(PENDING)
+  createdAt    DateTime @default(now())
+
+  servicosRealizados Transaction[] @relation("Barbeiro")
+  transacoesCriadas  Transaction[] @relation("CriadoPor")
+}
+
+model Transaction {
+  id          String          @id @default(cuid())
+  type        TransactionType
+  category    String
+  description String?
+  amount      Decimal         @db.Decimal(10, 2)
+  date        DateTime        @default(now())
+
+  barberId              String?
+  barber                User?    @relation("Barbeiro", fields: [barberId], references: [id])
+  commissionPercentage  Decimal? @db.Decimal(5, 2)
+  commissionAmount      Decimal? @db.Decimal(10, 2)
+
+  createdById String
+  createdBy   User     @relation("CriadoPor", fields: [createdById], references: [id])
+  createdAt   DateTime @default(now())
+}
+
+model Settings {
+  id                   Int     @id @default(1)
+  commissionPercentage Decimal @default(40.00) @db.Decimal(5, 2)
+}
