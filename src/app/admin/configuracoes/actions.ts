@@ -53,3 +53,27 @@ export async function desativarServico(id: string) {
   await prisma.serviceType.update({ where: { id }, data: { active: false } });
   revalidatePath("/admin/configuracoes");
 }
+
+export async function definirDesconto(id: string, formData: FormData) {
+  await verificarDono();
+  const percentualRaw = formData.get("discountPercentage") as string;
+  const validoAte = formData.get("discountValidUntil") as string;
+
+  const discountPercentage = percentualRaw ? parseFloat(percentualRaw.replace(",", ".")) : null;
+  const discountValidUntil = validoAte ? new Date(validoAte) : null;
+
+  await prisma.serviceType.update({
+    where: { id },
+    data: { discountPercentage, discountValidUntil },
+  });
+  revalidatePath("/admin/configuracoes");
+}
+
+export async function removerDesconto(id: string) {
+  await verificarDono();
+  await prisma.serviceType.update({
+    where: { id },
+    data: { discountPercentage: null, discountValidUntil: null },
+  });
+  revalidatePath("/admin/configuracoes");
+}

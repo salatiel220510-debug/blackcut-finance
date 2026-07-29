@@ -1,33 +1,35 @@
-"use client";
-import { useState } from "react";
-import { registrarBarbeiro } from "./actions";
+import { auth } from "@/auth";
+import { prisma } from "@/lib/prisma";
+import { redirect } from "next/navigation";
+import { aprovarBarbeiro, rejeitarBarbeiro } from "./actions";
 
-export default function CadastroPage() {
-  const [mensagem, setMensagem] = useState("");
-  const [sucesso, setSucesso] = useState(false);
+export default async function AprovacoesPage() {
+  const session = await auth();
+  if (!session?.user) redirect("/login");
+  if ((session.user as any).role !== "OWNER") redirect("/");
 
-  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    const formData = new FormData(e.currentTarget);
-    const resultado = await registrarBarbeiro(formData);
-
-    if (resultado.erro) {
-      setMensagem(resultado.erro);
-      setSucesso(false);
-    } else {
-      setSucesso(true);
-      setMensagem("Cadastro enviado! Aguarde a aprovação do dono para poder entrar.");
-    }
-  }
+  const pendentes = await prisma.user.findMany({
+    where: { status: "PENDING" },
+    orderBy: { createdAt: "asc" },
+  });
 
   return (
-    <form onSubmit={handleSubmit} style={{ padding: 24 }}>
-      <h1>BlackCut Finance — Cadastro de Barbeiro</h1>
-      <input name="name" placeholder="Nome completo" required />
-      <input name="email" type="email" placeholder="Email" required autoCapitalize="none" autoCorrect="off" />
-      <input name="password" type="password" placeholder="Senha" required minLength={6} />
-      <button type="submit">Cadastrar</button>
-      {mensagem && <p style={{ color: sucesso ? "green" : "red" }}>{mensagem}</p>}
-    </form>
+    <div style={{ padding: 24 }}>
+      <h1>Aprovações Pendentes</h1>
+      {pendentes.length === 0 && <p>Nenhuma solicitação pendente.</p>}
+      <ul>
+        {pendentes.map((barbeiro) => (
+          <li key={barbeiro.id} style={{ marginBottom: 12 }}>
+            <strong>{barbeiro.name}</strong> — {barbeiro.email}
+            <form action={aprovarBarbeiro.bind(null, barbeiro.id)} style={{ display: "inline", marginLeft: 8 }}>
+              <button type="submit">Aprovar</button>
+            </form>
+            <form action={rejeitarBarbeiro.bind(null, barbeiro.id)} style={{ display: "inline", marginLeft: 8 }}>
+              <button type="submit">Rejeitar</button>
+            </form>
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }

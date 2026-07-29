@@ -71,3 +71,13 @@ model ServiceType {
   active    Boolean  @default(true)
   createdAt DateTime @default(now())
 }
+
+model ServiceType {
+  id                String   @id @default(cuid())
+  name              String   @unique
+  price             Decimal? @db.Decimal(10, 2)
+  discountPercentage Decimal? @db.Decimal(5, 2)
+  discountValidUntil DateTime?
+  active            Boolean  @default(true)
+  createdAt         DateTime @default(now())
+}
