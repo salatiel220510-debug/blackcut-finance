@@ -37,19 +37,28 @@ export default function NovaTransacaoForm({
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setCarregando(true);
+    setMensagem("");
+
     const formData = new FormData(e.currentTarget);
     formData.set("type", tipo);
 
-    const resultado = await registrarTransacao(formData);
-    setCarregando(false);
+    try {
+      const resultado = await registrarTransacao(formData);
 
-    if (resultado?.erro) {
-      setMensagem(resultado.erro);
+      if (resultado?.erro) {
+        setMensagem(resultado.erro);
+        setSucesso(false);
+      } else {
+        setSucesso(true);
+        setMensagem("Lançamento registrado com sucesso!");
+        setTimeout(() => { window.location.href = "/caixa"; }, 800);
+      }
+    } catch (err) {
+      console.error(err);
+      setMensagem("Ocorreu um erro inesperado ao registrar. Tente novamente.");
       setSucesso(false);
-    } else {
-      setSucesso(true);
-      setMensagem("Lançamento registrado com sucesso!");
-      setTimeout(() => { window.location.href = "/caixa"; }, 800);
+    } finally {
+      setCarregando(false);
     }
   }
 

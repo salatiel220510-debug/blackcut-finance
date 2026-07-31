@@ -3,6 +3,7 @@
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/auth";
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
 import { enviarPushParaDonos } from "@/lib/push";
 
 export async function excluirTransacao(id: string) {
@@ -24,11 +25,17 @@ export async function excluirTransacao(id: string) {
   });
 
   if (role === "BARBER") {
+    const nomeUsuario = session.user?.name;
     const formatar = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-    await enviarPushParaDonos({
-      title: "Lançamento excluído",
-      body: `${session.user?.name} excluiu: ${transacao.category} — ${formatar(Number(transacao.amount))}`,
-    }).catch((e) => console.error("[push] erro ao notificar:", e));
+    const categoria = transacao.category;
+    const valor = Number(transacao.amount);
+
+    after(async () => {
+      await enviarPushParaDonos({
+        title: "Lançamento excluído",
+        body: `${nomeUsuario} excluiu: ${categoria} — ${formatar(valor)}`,
+      }).catch((e) => console.error("[push] erro ao notificar:", e));
+    });
   }
 
   revalidatePath("/caixa");
