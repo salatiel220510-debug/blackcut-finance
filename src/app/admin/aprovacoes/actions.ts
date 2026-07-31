@@ -13,7 +13,7 @@ async function verificarDono() {
 
 export async function aprovarBarbeiro(userId: string) {
   await verificarDono();
-  await prisma.user.update({ where: { id: userId }, data: { status: "APPROVED" } });
+  await prisma.user.update({ where: { id: userId }, data: { status: "APPROVED", needsAccessCode: true } });
   revalidatePath("/admin/aprovacoes");
 }
 

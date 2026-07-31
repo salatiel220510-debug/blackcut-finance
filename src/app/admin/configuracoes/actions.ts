@@ -14,11 +14,9 @@ async function verificarDono() {
 export async function atualizarComissao(formData: FormData) {
   await verificarDono();
   const percentual = parseFloat(((formData.get("commissionPercentage") as string) || "").replace(",", "."));
-
   if (isNaN(percentual) || percentual < 0 || percentual > 100) {
     return { erro: "Informe um percentual válido entre 0 e 100." };
   }
-
   await prisma.settings.update({ where: { id: 1 }, data: { commissionPercentage: percentual } });
   revalidatePath("/admin/configuracoes");
   return { sucesso: true };
@@ -29,12 +27,9 @@ export async function criarServico(formData: FormData) {
   const name = ((formData.get("name") as string) || "").trim();
   const priceRaw = formData.get("price") as string;
   const price = priceRaw ? parseFloat(priceRaw.replace(",", ".")) : null;
-
   if (!name) return { erro: "Informe o nome do serviço." };
-
   const existente = await prisma.serviceType.findUnique({ where: { name } });
   if (existente) return { erro: "Já existe um serviço com esse nome." };
-
   await prisma.serviceType.create({ data: { name, price } });
   revalidatePath("/admin/configuracoes");
   return { sucesso: true };
@@ -58,22 +53,32 @@ export async function definirDesconto(id: string, formData: FormData) {
   await verificarDono();
   const percentualRaw = formData.get("discountPercentage") as string;
   const validoAte = formData.get("discountValidUntil") as string;
-
   const discountPercentage = percentualRaw ? parseFloat(percentualRaw.replace(",", ".")) : null;
   const discountValidUntil = validoAte ? new Date(validoAte) : null;
 
-  await prisma.serviceType.update({
-    where: { id },
-    data: { discountPercentage, discountValidUntil },
-  });
+  if (discountPercentage !== null && (isNaN(discountPercentage) || discountPercentage <= 0 || discountPercentage > 100)) {
+    return { erro: "Informe um percentual de desconto válido entre 1 e 100." };
+  }
+
+  await prisma.serviceType.update({ where: { id }, data: { discountPercentage, discountValidUntil } });
   revalidatePath("/admin/configuracoes");
+  return { sucesso: true };
 }
 
 export async function removerDesconto(id: string) {
   await verificarDono();
-  await prisma.serviceType.update({
-    where: { id },
-    data: { discountPercentage: null, discountValidUntil: null },
-  });
+  await prisma.serviceType.update({ where: { id }, data: { discountPercentage: null, discountValidUntil: null } });
   revalidatePath("/admin/configuracoes");
+}
+
+export async function atualizarSaldoBancario(formData: FormData) {
+  await verificarDono();
+  const valorRaw = formData.get("saldoBancario") as string;
+  const valor = parseFloat((valorRaw || "").replace(",", "."));
+  if (isNaN(valor)) return { erro: "Informe um valor válido." };
+
+  await prisma.settings.update({ where: { id: 1 }, data: { saldoBancario: valor } });
+  revalidatePath("/admin/configuracoes");
+  revalidatePath("/caixa");
+  return { sucesso: true };
 }

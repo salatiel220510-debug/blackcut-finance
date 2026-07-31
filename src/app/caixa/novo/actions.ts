@@ -3,6 +3,7 @@
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/auth";
 import { revalidatePath } from "next/cache";
+import { enviarPushParaDonos } from "@/lib/push";
 
 export async function registrarTransacao(formData: FormData) {
   const session = await auth();
@@ -50,6 +51,14 @@ export async function registrarTransacao(formData: FormData) {
   await prisma.transaction.create({
     data: { type, category, description, amount, barberId, commissionPercentage, commissionAmount, createdById: userId },
   });
+
+  if (role === "BARBER") {
+    const formatar = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+    await enviarPushParaDonos({
+      title: "Novo lançamento no caixa",
+      body: `${session.user?.name} registrou ${category} — ${formatar(amount)}`,
+    }).catch((e) => console.error("[push] erro ao notificar:", e));
+  }
 
   revalidatePath("/caixa");
   return { sucesso: true };

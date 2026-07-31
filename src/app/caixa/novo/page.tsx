@@ -1,6 +1,8 @@
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
+import Navbar from "@/components/Navbar";
+import Footer from "@/components/Footer";
 import NovaTransacaoForm from "./form";
 
 export default async function NovaTransacaoPage() {
@@ -8,6 +10,7 @@ export default async function NovaTransacaoPage() {
   if (!session?.user) redirect("/login");
 
   const role = (session.user as any).role;
+  const nome = session.user?.name ?? "";
 
   const barbeiros = role === "OWNER"
     ? await prisma.user.findMany({
@@ -22,14 +25,33 @@ export default async function NovaTransacaoPage() {
     orderBy: { name: "asc" },
   });
 
+  const agora = new Date();
+  const servicosComDesconto = servicos.map((s) => {
+    const precoOriginal = s.price ? Number(s.price) : null;
+    const descontoValido =
+      s.discountPercentage != null &&
+      (!s.discountValidUntil || s.discountValidUntil >= agora);
+    const precoComDesconto =
+      descontoValido && precoOriginal != null
+        ? Number((precoOriginal * (1 - Number(s.discountPercentage) / 100)).toFixed(2))
+        : null;
+
+    return {
+      name: s.name,
+      price: precoOriginal,
+      discountedPrice: precoComDesconto,
+      discountPercentage: descontoValido ? Number(s.discountPercentage) : null,
+    };
+  });
+
   return (
-    <div style={{ padding: 24 }}>
-      <h1>Novo Lançamento</h1>
-      <NovaTransacaoForm
-        role={role}
-        barbeiros={barbeiros}
-        servicos={servicos.map((s) => ({ name: s.name, price: s.price ? Number(s.price) : null }))}
-      />
+    <div className="min-h-screen flex flex-col">
+      <Navbar role={role} nome={nome} />
+      <main className="flex-1 max-w-md w-full mx-auto px-4 py-8">
+        <h1 className="font-display text-2xl text-gold mb-6">Novo Lançamento</h1>
+        <NovaTransacaoForm role={role} barbeiros={barbeiros} servicos={servicosComDesconto} />
+      </main>
+      <Footer />
     </div>
   );
 }

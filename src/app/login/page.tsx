@@ -1,29 +1,87 @@
 "use client";
 import { signIn } from "next-auth/react";
 import { useState } from "react";
+import Link from "next/link";
+import Footer from "@/components/Footer";
 
 export default function LoginPage() {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [accessCode, setAccessCode] = useState("");
+  const [precisaCodigo, setPrecisaCodigo] = useState(false);
   const [erro, setErro] = useState("");
+  const [carregando, setCarregando] = useState(false);
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    const formData = new FormData(e.currentTarget);
+    setCarregando(true);
+    setErro("");
+
     const res = await signIn("credentials", {
-      email: formData.get("email"),
-      password: formData.get("password"),
+      email,
+      password,
+      accessCode: precisaCodigo ? accessCode : undefined,
       redirect: false,
     });
-    if (res?.error) setErro("Email ou senha incorretos, ou conta pendente.");
-    else window.location.href = "/";
+
+    setCarregando(false);
+
+    if (res?.error === "CODIGO_ACESSO_NECESSARIO") {
+      setPrecisaCodigo(true);
+      setErro("Primeiro acesso após aprovação (ou troca de senha recente). Peça o código de acesso ao dono.");
+      return;
+    }
+
+    if (res?.error) {
+      setErro(
+        res.error.startsWith("Código de acesso")
+          ? res.error
+          : "Email ou senha incorretos, ou conta pendente."
+      );
+      return;
+    }
+
+    window.location.href = "/home";
   }
 
   return (
-    <form onSubmit={handleSubmit} style={{ padding: 24 }}>
-      <h1>BlackCut Finance — Login</h1>
-      <input name="email" type="email" placeholder="Email" required autoCapitalize="none" autoCorrect="off" />
-      <input name="password" type="password" placeholder="Senha" required />
-      <button type="submit">Entrar</button>
-      {erro && <p style={{ color: "red" }}>{erro}</p>}
-    </form>
+    <div className="min-h-screen flex flex-col">
+      <div className="flex-1 flex items-center justify-center px-4">
+        <div className="w-full max-w-sm">
+          <h1 className="font-display text-3xl text-gold text-center mb-1">BlackCut Finance</h1>
+          <p className="text-gray-400 text-center mb-8">Acesse sua conta</p>
+
+          <form onSubmit={handleSubmit} className="flex flex-col gap-3 border border-gold-dark/40 bg-black-soft rounded-xl p-6">
+            <input
+              type="email" placeholder="Email" required autoCapitalize="none" autoCorrect="off"
+              value={email} onChange={(e) => setEmail(e.target.value)}
+              className="bg-black-deep border border-gold-dark/40 rounded-lg px-3 py-2 text-white"
+            />
+            <input
+              type="password" placeholder="Senha" required
+              value={password} onChange={(e) => setPassword(e.target.value)}
+              className="bg-black-deep border border-gold-dark/40 rounded-lg px-3 py-2 text-white"
+            />
+            {precisaCodigo && (
+              <input
+                type="text" placeholder="Código de acesso (peça ao dono)" required
+                value={accessCode} onChange={(e) => setAccessCode(e.target.value)}
+                className="bg-black-deep border border-gold rounded-lg px-3 py-2 text-white"
+              />
+            )}
+            <button type="submit" disabled={carregando}
+              className="bg-gold text-black-deep font-semibold rounded-lg py-2 hover:bg-gold-light transition-colors disabled:opacity-50">
+              {carregando ? "Entrando..." : "Entrar"}
+            </button>
+            {erro && <p className="text-red-400 text-sm">{erro}</p>}
+          </form>
+
+          <p className="text-center text-gray-400 text-sm mt-4">
+            Ainda não tem conta? <Link href="/cadastro" className="text-gold hover:underline">Cadastre-se</Link>
+          </p>
+        </div>
+      </div>
+      <Footer />
+    </div>
   );
 }

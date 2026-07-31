@@ -36,12 +36,16 @@ model User {
   role         Role          @default(BARBER)
   status       AccountStatus @default(PENDING)
   createdAt    DateTime      @default(now())
+  needsAccessCode Boolean @default(false)
 
-  servicosRealizados Transaction[] @relation("Barbeiro")
-  transacoesCriadas  Transaction[] @relation("CriadoPor")
+  servicosRealizados  Transaction[] @relation("Barbeiro")
+  transacoesCriadas   Transaction[] @relation("CriadoPor")
+  transacoesExcluidas Transaction[] @relation("ExcluidoPor")
 
   @@index([status])
   @@index([role])
+
+  pushSubscriptions   PushSubscription[]
 }
 
 model Transaction {
@@ -61,15 +65,23 @@ model Transaction {
   createdBy   User     @relation("CriadoPor", fields: [createdById], references: [id])
   createdAt   DateTime @default(now())
 
+  deletedAt   DateTime?
+  deletedById String?
+  deletedBy   User?     @relation("ExcluidoPor", fields: [deletedById], references: [id])
+
   @@index([date])
   @@index([barberId])
   @@index([type])
+  @@index([deletedAt])
 }
 
 model Settings {
-  id                   Int      @id @default(1)
-  commissionPercentage Decimal  @default(40.00) @db.Decimal(5, 2)
-  updatedAt            DateTime @updatedAt
+  id                   Int       @id @default(1)
+  commissionPercentage Decimal   @default(40.00) @db.Decimal(5, 2)
+  saldoBancario        Decimal   @default(0) @db.Decimal(10, 2)
+  accessCode           String?
+  accessCodeUpdatedAt  DateTime?
+  updatedAt            DateTime  @updatedAt
 }
 
 model ServiceType {
@@ -81,4 +93,16 @@ model ServiceType {
   active             Boolean   @default(true)
   createdAt          DateTime  @default(now())
   updatedAt          DateTime  @updatedAt
+}
+
+model PushSubscription {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  createdAt DateTime @default(now())
+
+  @@index([userId])
 }

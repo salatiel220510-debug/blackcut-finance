@@ -6,7 +6,7 @@ import { prisma } from "@/lib/prisma";
 export const { handlers, signIn, signOut, auth } = NextAuth({
   session: {
     strategy: "jwt",
-    maxAge: 60 * 60 * 24 * 365, // 1 ano
+    maxAge: 60 * 60 * 24 * 365,
   },
   pages: {
     signIn: "/login",
@@ -16,12 +16,12 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       credentials: {
         email: { label: "Email", type: "email" },
         password: { label: "Senha", type: "password" },
+        accessCode: { label: "Código de acesso", type: "text" },
       },
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) return null;
 
         const email = (credentials.email as string).toLowerCase().trim();
-
         const user = await prisma.user.findUnique({ where: { email } });
 
         if (!user) return null;
@@ -34,6 +34,21 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           user.passwordHash
         );
         if (!senhaCorreta) return null;
+
+        if (user.needsAccessCode) {
+          const codigoFornecido = ((credentials.accessCode as string) || "").trim();
+
+          if (!codigoFornecido) {
+            throw new Error("CODIGO_ACESSO_NECESSARIO");
+          }
+
+          const settings = await prisma.settings.findUnique({ where: { id: 1 } });
+          if (!settings?.accessCode || codigoFornecido !== settings.accessCode) {
+            throw new Error("Código de acesso inválido. Peça o código correto ao dono.");
+          }
+
+          await prisma.user.update({ where: { id: user.id }, data: { needsAccessCode: false } });
+        }
 
         return { id: user.id, name: user.name, email: user.email, role: user.role };
       },

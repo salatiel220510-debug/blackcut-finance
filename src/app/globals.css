@@ -5,12 +5,42 @@
   --foreground: #171717;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+@theme {
+  --color-gold: #d4af37;
+  --color-gold-light: #f4e5a1;
+  --color-gold-dark: #9c7a1e;
+  --color-black-deep: #0a0a0a;
+  --color-black-soft: #1a1a1a;
+
+  --font-display: var(--font-cinzel);
+  --font-body: var(--font-inter);
 }
+
+@keyframes tesoura-lamina-a {
+  0%, 100% { transform: rotate(-8deg); }
+  50% { transform: rotate(-8deg); }
+}
+@keyframes tesoura-lamina-b {
+  0%, 100% { transform: rotate(8deg); }
+  50% { transform: rotate(8deg); }
+}
+@keyframes brilho-dourado {
+  0%, 100% { text-shadow: 0 0 6px rgba(212,175,55,0.4), 0 0 12px rgba(212,175,55,0.2); }
+  50% { text-shadow: 0 0 16px rgba(212,175,55,0.9), 0 0 32px rgba(212,175,55,0.5); }
+}
+@keyframes pulso-suave {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 1; }
+}
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+.animate-tesoura-lamina-a { animation: tesoura-lamina-a 1s ease-in-out infinite; }
+.animate-tesoura-lamina-b { animation: tesoura-lamina-b 1s ease-in-out infinite; }
+.animate-brilho-dourado { animation: brilho-dourado 2s ease-in-out infinite; }
+.animate-pulso-suave { animation: pulso-suave 2.2s ease-in-out infinite; }
+.animate-fade-in { animation: fade-in 0.3s ease-out; }
 
 @media (prefers-color-scheme: dark) {
   :root {
