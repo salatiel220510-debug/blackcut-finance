@@ -14,7 +14,7 @@ export default function GraficoLinhaCaixa({ dados, mostrarComissao }: { dados: P
           <Tooltip
             contentStyle={{ backgroundColor: "#1a1a1a", border: "1px solid #9c7a1e", borderRadius: 8 }}
             labelStyle={{ color: "#d4af37" }}
-            formatter={(value: number) => value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+            formatter={(value) => Number(value).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
           />
           <Legend />
           <Line type="monotone" dataKey="entradas" name="Entradas" stroke="#d4af37" strokeWidth={2} dot={false} />

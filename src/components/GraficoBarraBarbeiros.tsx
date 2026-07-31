@@ -12,7 +12,7 @@ export default function GraficoBarraBarbeiros({ dados }: { dados: { nome: string
           <Tooltip
             contentStyle={{ backgroundColor: "#1a1a1a", border: "1px solid #9c7a1e", borderRadius: 8 }}
             labelStyle={{ color: "#d4af37" }}
-            formatter={(value: number) => value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+            formatter={(value) => Number(value).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
           />
           <Bar dataKey="total" name="Faturamento" fill="#d4af37" radius={[6, 6, 0, 0]} />
         </BarChart>
