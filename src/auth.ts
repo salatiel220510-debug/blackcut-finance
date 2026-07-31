@@ -23,11 +23,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 
         const email = (credentials.email as string).toLowerCase().trim();
         const user = await prisma.user.findUnique({ where: { email } });
-
         if (!user) return null;
-        if (user.status !== "APPROVED") {
-          throw new Error("Conta ainda pendente de aprovação.");
-        }
+        if (user.status !== "APPROVED") return null;
 
         const senhaCorreta = await bcrypt.compare(
           credentials.password as string,
@@ -37,15 +34,10 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 
         if (user.needsAccessCode) {
           const codigoFornecido = ((credentials.accessCode as string) || "").trim();
-
-          if (!codigoFornecido) {
-            throw new Error("CODIGO_ACESSO_NECESSARIO");
-          }
+          if (!codigoFornecido) return null;
 
           const settings = await prisma.settings.findUnique({ where: { id: 1 } });
-          if (!settings?.accessCode || codigoFornecido !== settings.accessCode) {
-            throw new Error("Código de acesso inválido. Peça o código correto ao dono.");
-          }
+          if (!settings?.accessCode || codigoFornecido !== settings.accessCode) return null;
 
           await prisma.user.update({ where: { id: user.id }, data: { needsAccessCode: false } });
         }

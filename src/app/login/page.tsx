@@ -3,6 +3,7 @@ import { signIn } from "next-auth/react";
 import { useState } from "react";
 import Link from "next/link";
 import Footer from "@/components/Footer";
+import { verificarLogin } from "./actions";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -17,6 +18,27 @@ export default function LoginPage() {
     setCarregando(true);
     setErro("");
 
+    if (!precisaCodigo) {
+      const verificacao = await verificarLogin(email, password);
+
+      if (verificacao.status === "invalido") {
+        setErro("Email ou senha incorretos.");
+        setCarregando(false);
+        return;
+      }
+      if (verificacao.status === "pendente") {
+        setErro("Sua conta ainda está pendente de aprovação pelo dono.");
+        setCarregando(false);
+        return;
+      }
+      if (verificacao.status === "precisa_codigo") {
+        setPrecisaCodigo(true);
+        setErro("Primeiro acesso após aprovação (ou após trocar de senha). Peça o código de acesso ao dono.");
+        setCarregando(false);
+        return;
+      }
+    }
+
     const res = await signIn("credentials", {
       email,
       password,
@@ -26,18 +48,8 @@ export default function LoginPage() {
 
     setCarregando(false);
 
-    if (res?.error === "CODIGO_ACESSO_NECESSARIO") {
-      setPrecisaCodigo(true);
-      setErro("Primeiro acesso após aprovação (ou troca de senha recente). Peça o código de acesso ao dono.");
-      return;
-    }
-
     if (res?.error) {
-      setErro(
-        res.error.startsWith("Código de acesso")
-          ? res.error
-          : "Email ou senha incorretos, ou conta pendente."
-      );
+      setErro(precisaCodigo ? "Código de acesso inválido." : "Email ou senha incorretos.");
       return;
     }
 
