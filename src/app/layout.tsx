@@ -17,6 +17,7 @@ const inter = Inter({
 export const metadata: Metadata = {
   title: "BlackCut Finance",
   description: "Gestão financeira da BlackCut Barber",
+  manifest: "/manifest.webmanifest",
 };
 
 export const viewport: Viewport = {
