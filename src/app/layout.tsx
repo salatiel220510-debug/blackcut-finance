@@ -1,6 +1,7 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Cinzel, Inter } from "next/font/google";
 import "./globals.css";
+import RegistrarServiceWorker from "@/components/RegistrarServiceWorker";
 
 const cinzel = Cinzel({
   variable: "--font-cinzel",
@@ -18,6 +19,10 @@ export const metadata: Metadata = {
   description: "Gestão financeira da BlackCut Barber",
 };
 
+export const viewport: Viewport = {
+  themeColor: "#0a0a0a",
+};
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -29,6 +34,7 @@ export default function RootLayout({
       className={`${cinzel.variable} ${inter.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col bg-black-deep text-white font-body">
+        <RegistrarServiceWorker />
         {children}
       </body>
     </html>
