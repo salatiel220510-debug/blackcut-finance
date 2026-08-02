@@ -3,6 +3,8 @@ import { signIn } from "next-auth/react";
 import { useState } from "react";
 import Link from "next/link";
 import Footer from "@/components/Footer";
+import FundoAbstrato from "@/components/FundoAbstrato";
+import TesouraAnimada from "@/components/TesouraAnimada";
 import { verificarLogin } from "./actions";
 
 export default function LoginPage() {
@@ -57,40 +59,57 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col">
-      <div className="flex-1 flex items-center justify-center px-4">
+    <div className="min-h-screen flex flex-col relative">
+      <FundoAbstrato />
+      <div className="flex-1 flex items-center justify-center px-4 py-12">
         <div className="w-full max-w-sm">
-          <h1 className="font-display text-3xl text-gold text-center mb-1">BlackCut Finance</h1>
-          <p className="text-gray-400 text-center mb-8">Acesse sua conta</p>
+          <div className="backdrop-blur-xl bg-white/[0.04] border border-gold/20 rounded-3xl shadow-2xl shadow-black/60 px-7 py-9">
+            <div className="flex flex-col items-center mb-2">
+              <TesouraAnimada size={48} />
+              <h1 className="font-display text-2xl text-gold tracking-widest mt-3">BLACKCUT</h1>
+            </div>
+            <p className="text-center text-gray-300 text-lg mb-8">Bem-vindo de volta</p>
 
-          <form onSubmit={handleSubmit} className="flex flex-col gap-3 border border-gold-dark/40 bg-black-soft rounded-xl p-6">
-            <input
-              type="email" placeholder="Email" required autoCapitalize="none" autoCorrect="off"
-              value={email} onChange={(e) => setEmail(e.target.value)}
-              className="bg-black-deep border border-gold-dark/40 rounded-lg px-3 py-2 text-white"
-            />
-            <input
-              type="password" placeholder="Senha" required
-              value={password} onChange={(e) => setPassword(e.target.value)}
-              className="bg-black-deep border border-gold-dark/40 rounded-lg px-3 py-2 text-white"
-            />
-            {precisaCodigo && (
-              <input
-                type="text" placeholder="Código de acesso (peça ao dono)" required
-                value={accessCode} onChange={(e) => setAccessCode(e.target.value)}
-                className="bg-black-deep border border-gold rounded-lg px-3 py-2 text-white"
-              />
-            )}
-            <button type="submit" disabled={carregando}
-              className="bg-gold text-black-deep font-semibold rounded-lg py-2 hover:bg-gold-light transition-colors disabled:opacity-50">
-              {carregando ? "Entrando..." : "Entrar"}
-            </button>
-            {erro && <p className="text-red-400 text-sm">{erro}</p>}
-          </form>
+            <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+              <div>
+                <label className="text-sm text-gray-300 block mb-1.5">Email</label>
+                <input
+                  type="email" required autoCapitalize="none" autoCorrect="off"
+                  value={email} onChange={(e) => setEmail(e.target.value)}
+                  className="w-full bg-white/5 border border-gold/30 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:border-gold focus:outline-none transition-colors"
+                />
+              </div>
+              <div>
+                <label className="text-sm text-gray-300 block mb-1.5">Senha</label>
+                <input
+                  type="password" required
+                  value={password} onChange={(e) => setPassword(e.target.value)}
+                  className="w-full bg-white/5 border border-gold/30 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:border-gold focus:outline-none transition-colors"
+                />
+              </div>
+              {precisaCodigo && (
+                <div>
+                  <label className="text-sm text-gold block mb-1.5">Código de acesso</label>
+                  <input
+                    type="text" required
+                    value={accessCode} onChange={(e) => setAccessCode(e.target.value)}
+                    placeholder="Peça ao dono"
+                    className="w-full bg-white/5 border border-gold rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none"
+                  />
+                </div>
+              )}
 
-          <p className="text-center text-gray-400 text-sm mt-4">
-            Ainda não tem conta? <Link href="/cadastro" className="text-gold hover:underline">Cadastre-se</Link>
-          </p>
+              <button type="submit" disabled={carregando}
+                className="w-full bg-gradient-to-r from-gold-dark via-gold to-gold-light text-black-deep font-bold py-3.5 rounded-xl shadow-lg shadow-gold/20 hover:shadow-gold/40 transition-shadow disabled:opacity-50 mt-2">
+                {carregando ? "Entrando..." : "Login"}
+              </button>
+              {erro && <p className="text-red-400 text-sm text-center">{erro}</p>}
+            </form>
+
+            <p className="text-center text-gray-400 text-sm mt-7">
+              Ainda não é membro? <Link href="/cadastro" className="text-gold font-semibold hover:underline">Cadastre-se</Link>
+            </p>
+          </div>
         </div>
       </div>
       <Footer />

@@ -2,6 +2,8 @@
 import { useState } from "react";
 import Link from "next/link";
 import Footer from "@/components/Footer";
+import FundoAbstrato from "@/components/FundoAbstrato";
+import TesouraAnimada from "@/components/TesouraAnimada";
 import { registrarBarbeiro } from "./actions";
 
 export default function CadastroPage() {
@@ -26,29 +28,47 @@ export default function CadastroPage() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col">
-      <div className="flex-1 flex items-center justify-center px-4">
+    <div className="min-h-screen flex flex-col relative">
+      <FundoAbstrato />
+      <div className="flex-1 flex items-center justify-center px-4 py-12">
         <div className="w-full max-w-sm">
-          <h1 className="font-display text-3xl text-gold text-center mb-1">BlackCut Finance</h1>
-          <p className="text-gray-400 text-center mb-8">Cadastro de Barbeiro</p>
+          <div className="backdrop-blur-xl bg-white/[0.04] border border-gold/20 rounded-3xl shadow-2xl shadow-black/60 px-7 py-9">
+            <div className="flex flex-col items-center mb-2">
+              <TesouraAnimada size={48} />
+              <h1 className="font-display text-2xl text-gold tracking-widest mt-3">BLACKCUT</h1>
+            </div>
+            <p className="text-center text-gray-300 text-lg mb-8">Criar conta de barbeiro</p>
 
-          <form onSubmit={handleSubmit} className="flex flex-col gap-3 border border-gold-dark/40 bg-black-soft rounded-xl p-6">
-            <input name="name" placeholder="Nome completo" required
-              className="bg-black-deep border border-gold-dark/40 rounded-lg px-3 py-2 text-white" />
-            <input name="email" type="email" placeholder="Email" required autoCapitalize="none" autoCorrect="off"
-              className="bg-black-deep border border-gold-dark/40 rounded-lg px-3 py-2 text-white" />
-            <input name="password" type="password" placeholder="Senha" required minLength={6}
-              className="bg-black-deep border border-gold-dark/40 rounded-lg px-3 py-2 text-white" />
-            <button type="submit" disabled={carregando}
-              className="bg-gold text-black-deep font-semibold rounded-lg py-2 hover:bg-gold-light transition-colors disabled:opacity-50">
-              {carregando ? "Enviando..." : "Cadastrar"}
-            </button>
-            {mensagem && <p className={sucesso ? "text-green-400 text-sm" : "text-red-400 text-sm"}>{mensagem}</p>}
-          </form>
+            <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+              <div>
+                <label className="text-sm text-gray-300 block mb-1.5">Nome completo</label>
+                <input name="name" required
+                  className="w-full bg-white/5 border border-gold/30 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:border-gold focus:outline-none transition-colors" />
+              </div>
+              <div>
+                <label className="text-sm text-gray-300 block mb-1.5">Email</label>
+                <input name="email" type="email" required autoCapitalize="none" autoCorrect="off"
+                  className="w-full bg-white/5 border border-gold/30 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:border-gold focus:outline-none transition-colors" />
+              </div>
+              <div>
+                <label className="text-sm text-gray-300 block mb-1.5">Senha</label>
+                <input name="password" type="password" required minLength={6}
+                  className="w-full bg-white/5 border border-gold/30 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:border-gold focus:outline-none transition-colors" />
+              </div>
 
-          <p className="text-center text-gray-400 text-sm mt-4">
-            Já tem conta? <Link href="/login" className="text-gold hover:underline">Entrar</Link>
-          </p>
+              <button type="submit" disabled={carregando}
+                className="w-full bg-gradient-to-r from-gold-dark via-gold to-gold-light text-black-deep font-bold py-3.5 rounded-xl shadow-lg shadow-gold/20 hover:shadow-gold/40 transition-shadow disabled:opacity-50 mt-2">
+                {carregando ? "Enviando..." : "Cadastrar"}
+              </button>
+              {mensagem && (
+                <p className={`text-sm text-center ${sucesso ? "text-green-400" : "text-red-400"}`}>{mensagem}</p>
+              )}
+            </form>
+
+            <p className="text-center text-gray-400 text-sm mt-7">
+              Já tem conta? <Link href="/login" className="text-gold font-semibold hover:underline">Entrar</Link>
+            </p>
+          </div>
         </div>
       </div>
       <Footer />
