@@ -73,36 +73,38 @@ export default async function CaixaPage() {
 
           <p className="text-sm text-gray-400 mb-3">Exibindo os últimos {transacoes.length} lançamentos.</p>
 
-          <div className="overflow-x-auto border border-gold-dark/30 rounded-xl">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="text-left text-gold border-b border-gold-dark/30 bg-black-soft">
-                  <th className="p-3">Data</th>
-                  <th className="p-3">Tipo</th>
-                  <th className="p-3">Categoria</th>
-                  <th className="p-3">Barbeiro</th>
-                  <th className="p-3">Valor</th>
-                  <th className="p-3">Comissão</th>
-                  <th className="p-3"></th>
-                </tr>
-              </thead>
-              <tbody>
-                {transacoes.map((t) => {
-                  const podeExcluir = role === "OWNER" || t.createdById === userId;
-                  return (
-                    <tr key={t.id} className="border-b border-gold-dark/10">
-                      <td className="p-3">{new Date(t.date).toLocaleDateString("pt-BR")}</td>
-                      <td className="p-3">{t.type === "INCOME" ? "Entrada" : "Saída"}</td>
-                      <td className="p-3">{t.category}</td>
-                      <td className="p-3">{t.barber?.name ?? "—"}</td>
-                      <td className="p-3">{formatar(Number(t.amount))}</td>
-                      <td className="p-3">{t.commissionAmount ? formatar(Number(t.commissionAmount)) : "—"}</td>
-                      <td className="p-3">{podeExcluir && <BotaoExcluirTransacao id={t.id} />}</td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+          <div className="flex flex-col gap-3">
+            {transacoes.map((t) => {
+              const podeExcluir = role === "OWNER" || t.createdById === userId;
+              const entrada = t.type === "INCOME";
+              return (
+                <div key={t.id} className="border border-gold-dark/30 bg-black-soft rounded-xl p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <span
+                        className={`inline-block text-xs font-semibold px-2 py-0.5 rounded-full mb-1.5 ${
+                          entrada ? "bg-green-400/10 text-green-400" : "bg-red-400/10 text-red-400"
+                        }`}
+                      >
+                        {entrada ? "Entrada" : "Saída"}
+                      </span>
+                      <p className="text-white font-semibold truncate">{t.category}</p>
+                      {t.barber?.name && <p className="text-gray-400 text-xs mt-0.5">{t.barber.name}</p>}
+                    </div>
+                    <div className="text-right shrink-0">
+                      <p className="text-white font-bold">{formatar(Number(t.amount))}</p>
+                      {t.commissionAmount != null && (
+                        <p className="text-gold text-xs mt-0.5">Comissão: {formatar(Number(t.commissionAmount))}</p>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between mt-3 pt-3 border-t border-gold-dark/10">
+                    <span className="text-gray-500 text-xs">{new Date(t.date).toLocaleDateString("pt-BR")}</span>
+                    {podeExcluir && <BotaoExcluirTransacao id={t.id} />}
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </main>
         <Footer />
