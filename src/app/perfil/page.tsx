@@ -57,60 +57,62 @@ export default async function PerfilPage() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-screen flex flex-row">
       <Navbar role={role} nome={user.name} />
-      <main className="flex-1 max-w-2xl w-full mx-auto px-4 py-8">
-        <h1 className="font-display text-2xl text-gold mb-1">Meu Perfil</h1>
-        <p className="text-gray-400 mb-8">Membro desde {membroDesde}</p>
+      <div className="flex-1 flex flex-col">
+        <main className="flex-1 max-w-2xl w-full mx-auto px-4 py-8">
+          <h1 className="font-display text-2xl text-gold mb-1">Meu Perfil</h1>
+          <p className="text-gray-400 mb-8">Membro desde {membroDesde}</p>
 
-        <section className="border border-gold-dark/40 bg-black-soft rounded-xl p-5 mb-6">
-          <InfoLinha label="Nome" valor={user.name} />
-          <InfoLinha label="Email" valor={user.email} />
-          <InfoLinha label="Cargo" valor={role === "OWNER" ? "Dono" : "Barbeiro"} />
-          {role === "BARBER" && <InfoLinha label="Nível" valor={nivel ?? ""} destaque />}
-        </section>
-
-        {role === "BARBER" && (
-          <section className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
-            <Card titulo="Faturamento gerado" valor={formatar(faturamentoTotal)} />
-            <Card titulo="Comissão acumulada" valor={formatar(comissaoAcumulada)} destaque />
-            <Card titulo="Percentual atual" valor={`${comissaoPercentual}%`} />
-          </section>
-        )}
-
-        {role === "OWNER" && (
-          <section className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
-            <Card titulo="Fundos da Barbearia" valor={formatar(lucroLiquido)} destaque />
-            <Card titulo="Comissão configurada" valor={`${comissaoPercentual}%`} />
-          </section>
-        )}
-
-        {role === "OWNER" && (
           <section className="border border-gold-dark/40 bg-black-soft rounded-xl p-5 mb-6">
-            <h2 className="font-display text-lg text-gold mb-3">Notificações</h2>
-            <p className="text-gray-400 text-sm mb-3">
-              Receba um aviso no celular sempre que um barbeiro registrar ou excluir um lançamento.
-            </p>
-            <PushNotificationSetup />
+            <InfoLinha label="Nome" valor={user.name} />
+            <InfoLinha label="Email" valor={user.email} />
+            <InfoLinha label="Cargo" valor={role === "OWNER" ? "Dono" : "Barbeiro"} />
+            {role === "BARBER" && <InfoLinha label="Nível" valor={nivel ?? ""} destaque />}
           </section>
-        )}
 
-        {role === "OWNER" && (
-          <section className="border border-gold-dark/40 bg-black-soft rounded-xl p-5 mb-6">
-            <h2 className="font-display text-lg text-gold mb-3">Código de Acesso para Barbeiros</h2>
-            <p className="text-gray-400 text-sm mb-3">
-              Necessário no primeiro login de um barbeiro recém-aprovado, ou sempre que ele trocar a própria senha.
-            </p>
-            <GerarCodigoAcesso />
+          {role === "BARBER" && (
+            <section className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
+              <Card titulo="Faturamento gerado" valor={formatar(faturamentoTotal)} />
+              <Card titulo="Comissão acumulada" valor={formatar(comissaoAcumulada)} destaque />
+              <Card titulo="Percentual atual" valor={`${comissaoPercentual}%`} />
+            </section>
+          )}
+
+          {role === "OWNER" && (
+            <section className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
+              <Card titulo="Fundos da Barbearia" valor={formatar(lucroLiquido)} destaque />
+              <Card titulo="Comissão configurada" valor={`${comissaoPercentual}%`} />
+            </section>
+          )}
+
+          {role === "OWNER" && (
+            <section className="border border-gold-dark/40 bg-black-soft rounded-xl p-5 mb-6">
+              <h2 className="font-display text-lg text-gold mb-3">Notificações</h2>
+              <p className="text-gray-400 text-sm mb-3">
+                Receba um aviso no celular sempre que um barbeiro registrar ou excluir um lançamento.
+              </p>
+              <PushNotificationSetup />
+            </section>
+          )}
+
+          {role === "OWNER" && (
+            <section className="border border-gold-dark/40 bg-black-soft rounded-xl p-5 mb-6">
+              <h2 className="font-display text-lg text-gold mb-3">Código de Acesso para Barbeiros</h2>
+              <p className="text-gray-400 text-sm mb-3">
+                Necessário no primeiro login de um barbeiro recém-aprovado, ou sempre que ele trocar a própria senha.
+              </p>
+              <GerarCodigoAcesso />
+            </section>
+          )}
+
+          <section className="border border-gold-dark/40 bg-black-soft rounded-xl p-5">
+            <h2 className="font-display text-lg text-gold mb-4">Alterar Senha</h2>
+            <FormSenha />
           </section>
-        )}
-
-        <section className="border border-gold-dark/40 bg-black-soft rounded-xl p-5">
-          <h2 className="font-display text-lg text-gold mb-4">Alterar Senha</h2>
-          <FormSenha />
-        </section>
+        </main>
         <Footer />
-      </main>
+      </div>
     </div>
   );
 }

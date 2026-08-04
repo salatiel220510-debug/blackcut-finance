@@ -45,13 +45,15 @@ export default async function NovaTransacaoPage() {
   });
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-screen flex flex-row">
       <Navbar role={role} nome={nome} />
-      <main className="flex-1 max-w-md w-full mx-auto px-4 py-8">
-        <h1 className="font-display text-2xl text-gold mb-6">Novo Lançamento</h1>
-        <NovaTransacaoForm role={role} barbeiros={barbeiros} servicos={servicosComDesconto} />
-      </main>
-      <Footer />
+      <div className="flex-1 flex flex-col">
+        <main className="flex-1 max-w-md w-full mx-auto px-4 py-8">
+          <h1 className="font-display text-2xl text-gold mb-6">Novo Lançamento</h1>
+          <NovaTransacaoForm role={role} barbeiros={barbeiros} servicos={servicosComDesconto} />
+        </main>
+        <Footer />
+      </div>
     </div>
   );
 }

@@ -1,53 +1,95 @@
+"use client";
+import { useState } from "react";
 import Link from "next/link";
-import { signOut } from "@/auth";
+import { usePathname } from "next/navigation";
+import { signOut } from "next-auth/react";
 
-const LINKS_COMUNS = [
-  { href: "/home", label: "Início" },
-  { href: "/caixa", label: "Caixa" },
-  { href: "/caixa/novo", label: "Novo Lançamento" },
-  { href: "/perfil", label: "Meu Perfil" },
+type ItemMenu = { href: string; label: string; icone: React.ReactNode };
+
+function IconeHome() {
+  return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" width={20} height={20}><path d="M3 12l9-9 9 9" /><path d="M5 10v10h14V10" /></svg>;
+}
+function IconeCaixa() {
+  return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" width={20} height={20}><rect x="3" y="6" width="18" height="12" rx="2" /><circle cx="12" cy="12" r="2" /></svg>;
+}
+function IconeNovo() {
+  return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" width={20} height={20}><circle cx="12" cy="12" r="10" /><path d="M12 8v8M8 12h8" /></svg>;
+}
+function IconePerfil() {
+  return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" width={20} height={20}><circle cx="12" cy="8" r="4" /><path d="M4 20c0-4 4-6 8-6s8 2 8 6" /></svg>;
+}
+function IconeConfig() {
+  return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" width={20} height={20}><line x1="4" y1="6" x2="20" y2="6" /><circle cx="14" cy="6" r="2" /><line x1="4" y1="12" x2="20" y2="12" /><circle cx="8" cy="12" r="2" /><line x1="4" y1="18" x2="20" y2="18" /><circle cx="16" cy="18" r="2" /></svg>;
+}
+function IconeAprovacoes() {
+  return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" width={20} height={20}><circle cx="12" cy="12" r="10" /><path d="M8 12l3 3 5-6" /></svg>;
+}
+function IconeSair() {
+  return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" width={20} height={20}><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4" /><path d="M16 17l5-5-5-5" /><path d="M21 12H9" /></svg>;
+}
+function IconeMenu() {
+  return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" width={20} height={20}><line x1="4" y1="7" x2="20" y2="7" /><line x1="4" y1="12" x2="20" y2="12" /><line x1="4" y1="17" x2="20" y2="17" /></svg>;
+}
+
+const LINKS_COMUNS: ItemMenu[] = [
+  { href: "/home", label: "Início", icone: <IconeHome /> },
+  { href: "/caixa", label: "Caixa", icone: <IconeCaixa /> },
+  { href: "/caixa/novo", label: "Novo", icone: <IconeNovo /> },
+  { href: "/perfil", label: "Perfil", icone: <IconePerfil /> },
 ];
 
-const LINKS_DONO = [
-  { href: "/admin/configuracoes", label: "Preços & Comissão" },
-  { href: "/admin/aprovacoes", label: "Aprovações" },
+const LINKS_DONO: ItemMenu[] = [
+  { href: "/admin/configuracoes", label: "Config.", icone: <IconeConfig /> },
+  { href: "/admin/aprovacoes", label: "Aprovações", icone: <IconeAprovacoes /> },
 ];
 
-export default function Navbar({ role, nome }: { role: string; nome: string }) {
+export default function Navbar({ role }: { role: string; nome?: string }) {
+  const [aberto, setAberto] = useState(false);
+  const pathname = usePathname();
   const links = role === "OWNER" ? [...LINKS_COMUNS, ...LINKS_DONO] : LINKS_COMUNS;
 
   return (
-    <header className="border-b border-gold-dark/40 bg-black-soft">
-      <div className="max-w-4xl mx-auto px-4 py-3">
-        <div className="flex items-center justify-between mb-3">
-          <span className="font-display text-xl text-gold tracking-wide">BlackCut Finance</span>
-          <span className="text-sm text-gold-dark hidden sm:inline">Olá, {nome}</span>
-        </div>
-        <nav className="flex flex-wrap gap-2 items-center">
-          {links.map((link) => (
+    <>
+      {/* reserva espaço fixo no layout para a barra recolhida, mesmo com ela flutuando por cima */}
+      <div className="w-16 shrink-0" aria-hidden />
+
+      <nav
+        className={`fixed left-3 top-1/2 -translate-y-1/2 z-40 backdrop-blur-xl bg-black-soft/70 border border-gold/20 shadow-2xl shadow-black/50 flex flex-col items-stretch gap-1 py-3 transition-all duration-300 ${
+          aberto ? "w-52 rounded-3xl px-3" : "w-14 rounded-full px-2"
+        }`}
+      >
+        <button
+          onClick={() => setAberto(!aberto)}
+          className="flex items-center gap-3 text-gold p-2.5 rounded-xl hover:bg-gold/10 transition-colors mb-1"
+        >
+          <IconeMenu />
+          {aberto && <span className="text-sm font-semibold">Menu</span>}
+        </button>
+
+        {links.map((item) => {
+          const ativo = pathname === item.href;
+          return (
             <Link
-              key={link.href}
-              href={link.href}
-              className="text-sm font-semibold text-gold border border-gold-dark rounded-full px-4 py-1.5 hover:bg-gold hover:text-black-deep transition-colors"
+              key={item.href}
+              href={item.href}
+              className={`flex items-center gap-3 p-2.5 rounded-xl transition-colors ${
+                ativo ? "bg-gold text-black-deep font-semibold" : "text-gold hover:bg-gold/10"
+              }`}
             >
-              {link.label}
+              {item.icone}
+              {aberto && <span className="text-sm whitespace-nowrap">{item.label}</span>}
             </Link>
-          ))}
-          <form
-            action={async () => {
-              "use server";
-              await signOut({ redirectTo: "/login" });
-            }}
-          >
-            <button
-              type="submit"
-              className="text-sm font-semibold text-red-400 border border-red-400/50 rounded-full px-4 py-1.5 hover:bg-red-400 hover:text-black-deep transition-colors"
-            >
-              Sair
-            </button>
-          </form>
-        </nav>
-      </div>
-    </header>
+          );
+        })}
+
+        <button
+          onClick={() => signOut({ callbackUrl: "/login" })}
+          className="flex items-center gap-3 text-red-400 p-2.5 rounded-xl hover:bg-red-400/10 transition-colors mt-1"
+        >
+          <IconeSair />
+          {aberto && <span className="text-sm font-semibold">Sair</span>}
+        </button>
+      </nav>
+    </>
   );
 }

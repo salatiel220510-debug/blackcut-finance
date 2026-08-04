@@ -21,8 +21,16 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#0a0a0a",
+  themeColor: "#150811",
 };
+
+const SCRIPT_TEMA = `
+  (function () {
+    var hora = new Date().getHours();
+    var tema = hora >= 6 && hora < 18 ? "day" : "night";
+    document.documentElement.setAttribute("data-theme", tema);
+  })();
+`;
 
 export default function RootLayout({
   children,
@@ -32,9 +40,11 @@ export default function RootLayout({
   return (
     <html
       lang="pt-BR"
+      suppressHydrationWarning
       className={`${cinzel.variable} ${inter.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col bg-black-deep text-white font-body">
+        <script dangerouslySetInnerHTML={{ __html: SCRIPT_TEMA }} />
         <RegistrarServiceWorker />
         {children}
       </body>
