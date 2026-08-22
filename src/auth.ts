@@ -2,6 +2,7 @@ import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
+import { verificarBloqueio, registrarTentativa } from "@/lib/rateLimit";
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
   session: {
@@ -22,15 +23,28 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         if (!credentials?.email || !credentials?.password) return null;
 
         const email = (credentials.email as string).toLowerCase().trim();
+
+        const bloqueio = await verificarBloqueio(email);
+        if (bloqueio.bloqueado) return null;
+
         const user = await prisma.user.findUnique({ where: { email } });
-        if (!user) return null;
+
+        if (!user) {
+          await registrarTentativa(email, false);
+          return null;
+        }
         if (user.status !== "APPROVED") return null;
 
         const senhaCorreta = await bcrypt.compare(
           credentials.password as string,
           user.passwordHash
         );
-        if (!senhaCorreta) return null;
+        if (!senhaCorreta) {
+          await registrarTentativa(email, false);
+          return null;
+        }
+
+        await registrarTentativa(email, true);
 
         if (user.needsAccessCode) {
           const codigoFornecido = ((credentials.accessCode as string) || "").trim();

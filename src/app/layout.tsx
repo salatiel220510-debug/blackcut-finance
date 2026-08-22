@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Cinzel, Inter } from "next/font/google";
+import { headers } from "next/headers";
 import "./globals.css";
 import RegistrarServiceWorker from "@/components/RegistrarServiceWorker";
 
@@ -32,11 +33,13 @@ const SCRIPT_TEMA = `
   })();
 `;
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const nonce = (await headers()).get("x-nonce") ?? undefined;
+
   return (
     <html
       lang="pt-BR"
@@ -44,7 +47,7 @@ export default function RootLayout({
       className={`${cinzel.variable} ${inter.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col bg-black-deep text-white font-body">
-        <script dangerouslySetInnerHTML={{ __html: SCRIPT_TEMA }} />
+        <script nonce={nonce} suppressHydrationWarning dangerouslySetInnerHTML={{ __html: SCRIPT_TEMA }} />
         <RegistrarServiceWorker />
         {children}
       </body>

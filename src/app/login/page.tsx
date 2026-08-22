@@ -23,6 +23,11 @@ export default function LoginPage() {
     if (!precisaCodigo) {
       const verificacao = await verificarLogin(email, password);
 
+      if (verificacao.status === "bloqueado") {
+        setErro(`Muitas tentativas incorretas. Tente novamente em ${verificacao.minutos} minuto(s).`);
+        setCarregando(false);
+        return;
+      }
       if (verificacao.status === "invalido") {
         setErro("Email ou senha incorretos.");
         setCarregando(false);

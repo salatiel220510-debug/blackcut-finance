@@ -106,3 +106,12 @@ model PushSubscription {
 
   @@index([userId])
 }
+
+model LoginAttempt {
+  id         String   @id @default(cuid())
+  identifier String
+  success    Boolean
+  createdAt  DateTime @default(now())
+
+  @@index([identifier, createdAt])
+}
