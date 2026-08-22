@@ -3,6 +3,13 @@
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/auth";
 import { revalidatePath } from "next/cache";
+import {
+  comissaoSchema,
+  saldoBancarioSchema,
+  servicoSchema,
+  atualizarPrecoSchema,
+  descontoSchema,
+} from "@/lib/schemas";
 
 async function verificarDono() {
   const session = await auth();
@@ -13,33 +20,40 @@ async function verificarDono() {
 
 export async function atualizarComissao(formData: FormData) {
   await verificarDono();
-  const percentual = parseFloat(((formData.get("commissionPercentage") as string) || "").replace(",", "."));
-  if (isNaN(percentual) || percentual < 0 || percentual > 100) {
-    return { erro: "Informe um percentual válido entre 0 e 100." };
-  }
-  await prisma.settings.update({ where: { id: 1 }, data: { commissionPercentage: percentual } });
+  const validacao = comissaoSchema.safeParse(Object.fromEntries(formData));
+  if (!validacao.success) return { erro: validacao.error.issues[0].message };
+
+  await prisma.settings.update({
+    where: { id: 1 },
+    data: { commissionPercentage: validacao.data.commissionPercentage },
+  });
   revalidatePath("/admin/configuracoes");
   return { sucesso: true };
 }
 
 export async function criarServico(formData: FormData) {
   await verificarDono();
-  const name = ((formData.get("name") as string) || "").trim();
-  const priceRaw = formData.get("price") as string;
-  const price = priceRaw ? parseFloat(priceRaw.replace(",", ".")) : null;
-  if (!name) return { erro: "Informe o nome do serviço." };
+  const validacao = servicoSchema.safeParse(Object.fromEntries(formData));
+  if (!validacao.success) return { erro: validacao.error.issues[0].message };
+
+  const { name, price } = validacao.data;
   const existente = await prisma.serviceType.findUnique({ where: { name } });
   if (existente) return { erro: "Já existe um serviço com esse nome." };
-  await prisma.serviceType.create({ data: { name, price } });
+
+  await prisma.serviceType.create({ data: { name, price: price ?? null } });
   revalidatePath("/admin/configuracoes");
   return { sucesso: true };
 }
 
 export async function atualizarServico(id: string, formData: FormData) {
   await verificarDono();
-  const priceRaw = formData.get("price") as string;
-  const price = priceRaw ? parseFloat(priceRaw.replace(",", ".")) : null;
-  await prisma.serviceType.update({ where: { id }, data: { price } });
+  const validacao = atualizarPrecoSchema.safeParse(Object.fromEntries(formData));
+  if (!validacao.success) return { erro: validacao.error.issues[0].message };
+
+  await prisma.serviceType.update({
+    where: { id },
+    data: { price: validacao.data.price ?? null },
+  });
   revalidatePath("/admin/configuracoes");
 }
 
@@ -51,33 +65,40 @@ export async function desativarServico(id: string) {
 
 export async function definirDesconto(id: string, formData: FormData) {
   await verificarDono();
-  const percentualRaw = formData.get("discountPercentage") as string;
-  const validoAte = formData.get("discountValidUntil") as string;
-  const discountPercentage = percentualRaw ? parseFloat(percentualRaw.replace(",", ".")) : null;
-  const discountValidUntil = validoAte ? new Date(validoAte) : null;
+  const validacao = descontoSchema.safeParse(Object.fromEntries(formData));
+  if (!validacao.success) return { erro: validacao.error.issues[0].message };
 
-  if (discountPercentage !== null && (isNaN(discountPercentage) || discountPercentage <= 0 || discountPercentage > 100)) {
-    return { erro: "Informe um percentual de desconto válido entre 1 e 100." };
-  }
+  const { discountPercentage, discountValidUntil } = validacao.data;
 
-  await prisma.serviceType.update({ where: { id }, data: { discountPercentage, discountValidUntil } });
+  await prisma.serviceType.update({
+    where: { id },
+    data: {
+      discountPercentage,
+      discountValidUntil: discountValidUntil ? new Date(discountValidUntil) : null,
+    },
+  });
   revalidatePath("/admin/configuracoes");
   return { sucesso: true };
 }
 
 export async function removerDesconto(id: string) {
   await verificarDono();
-  await prisma.serviceType.update({ where: { id }, data: { discountPercentage: null, discountValidUntil: null } });
+  await prisma.serviceType.update({
+    where: { id },
+    data: { discountPercentage: null, discountValidUntil: null },
+  });
   revalidatePath("/admin/configuracoes");
 }
 
 export async function atualizarSaldoBancario(formData: FormData) {
   await verificarDono();
-  const valorRaw = formData.get("saldoBancario") as string;
-  const valor = parseFloat((valorRaw || "").replace(",", "."));
-  if (isNaN(valor)) return { erro: "Informe um valor válido." };
+  const validacao = saldoBancarioSchema.safeParse(Object.fromEntries(formData));
+  if (!validacao.success) return { erro: validacao.error.issues[0].message };
 
-  await prisma.settings.update({ where: { id: 1 }, data: { saldoBancario: valor } });
+  await prisma.settings.update({
+    where: { id: 1 },
+    data: { saldoBancario: validacao.data.saldoBancario },
+  });
   revalidatePath("/admin/configuracoes");
   revalidatePath("/caixa");
   return { sucesso: true };

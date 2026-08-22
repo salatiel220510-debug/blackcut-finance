@@ -4,9 +4,15 @@ import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
 import { headers } from "next/headers";
 import { verificarBloqueio, registrarTentativa } from "@/lib/rateLimit";
+import { loginSchema } from "@/lib/schemas";
 
 export async function verificarLogin(email: string, password: string) {
-  const emailNormalizado = email.toLowerCase().trim();
+  const validacao = loginSchema.safeParse({ email, password });
+  if (!validacao.success) {
+    return { status: "invalido" as const };
+  }
+
+  const emailNormalizado = validacao.data.email;
   const headersList = await headers();
   const forwarded = headersList.get("x-forwarded-for");
   const ip = forwarded ? forwarded.split(",")[0].trim() : "desconhecido";
@@ -27,7 +33,7 @@ export async function verificarLogin(email: string, password: string) {
     return { status: "invalido" as const };
   }
 
-  const senhaCorreta = await bcrypt.compare(password, user.passwordHash);
+  const senhaCorreta = await bcrypt.compare(validacao.data.password, user.passwordHash);
   if (!senhaCorreta) {
     await registrarTentativa(emailNormalizado, false);
     await registrarTentativa(`ip:${ip}`, false);

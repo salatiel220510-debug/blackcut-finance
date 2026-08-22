@@ -3,25 +3,20 @@
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/auth";
 import bcrypt from "bcryptjs";
+import { senhaSchema } from "@/lib/schemas";
 
 export async function alterarSenha(formData: FormData) {
   const session = await auth();
   if (!session?.user) return { erro: "Não autenticado." };
 
   const userId = (session.user as any).id;
-  const senhaAtual = formData.get("senhaAtual") as string;
-  const novaSenha = formData.get("novaSenha") as string;
-  const confirmarSenha = formData.get("confirmarSenha") as string;
 
-  if (!senhaAtual || !novaSenha || !confirmarSenha) {
-    return { erro: "Preencha todos os campos." };
+  const validacao = senhaSchema.safeParse(Object.fromEntries(formData));
+  if (!validacao.success) {
+    return { erro: validacao.error.issues[0].message };
   }
-  if (novaSenha.length < 6) {
-    return { erro: "A nova senha precisa ter pelo menos 6 caracteres." };
-  }
-  if (novaSenha !== confirmarSenha) {
-    return { erro: "A confirmação não corresponde à nova senha." };
-  }
+
+  const { senhaAtual, novaSenha } = validacao.data;
 
   const user = await prisma.user.findUnique({ where: { id: userId } });
   if (!user) return { erro: "Usuário não encontrado." };

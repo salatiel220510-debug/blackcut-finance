@@ -2,15 +2,16 @@
 
 import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
+import { cadastroSchema } from "@/lib/schemas";
 
 export async function registrarBarbeiro(formData: FormData) {
-  const name = formData.get("name") as string;
-  const email = (formData.get("email") as string).toLowerCase().trim();
-  const password = formData.get("password") as string;
+  const validacao = cadastroSchema.safeParse(Object.fromEntries(formData));
 
-  if (!name || !email || !password) {
-    return { erro: "Preencha todos os campos." };
+  if (!validacao.success) {
+    return { erro: validacao.error.issues[0].message };
   }
+
+  const { name, email, password } = validacao.data;
 
   const existente = await prisma.user.findUnique({ where: { email } });
   if (existente) {

@@ -1,0 +1,85 @@
+import { z } from "zod";
+
+function emailNormalizado(mensagem = "E-mail inválido.") {
+  return z.preprocess(
+    (val) => (typeof val === "string" ? val.trim().toLowerCase() : val),
+    z.email(mensagem)
+  );
+}
+
+function numeroPtBR(mensagem = "Informe um valor válido.") {
+  return z
+    .preprocess((val) => {
+      if (typeof val === "string") return val.replace(",", ".").trim();
+      return val;
+    }, z.coerce.number())
+    .refine((v) => !isNaN(v), mensagem);
+}
+
+function numeroPtBROpcional() {
+  return z.preprocess((val) => {
+    if (val === "" || val === null || val === undefined) return undefined;
+    if (typeof val === "string") return val.replace(",", ".").trim();
+    return val;
+  }, z.coerce.number().optional());
+}
+
+export const loginSchema = z.object({
+  email: emailNormalizado(),
+  password: z.string().min(1, "Informe a senha."),
+});
+
+export const cadastroSchema = z.object({
+  name: z.string().trim().min(2, "Informe seu nome completo."),
+  email: emailNormalizado(),
+  password: z.string().min(6, "A senha precisa ter pelo menos 6 caracteres."),
+});
+
+export const transacaoSchema = z.object({
+  type: z.enum(["INCOME", "EXPENSE"]),
+  category: z.string().trim().min(1, "Informe a categoria."),
+  description: z.string().trim().max(500, "Descrição muito longa.").optional(),
+  amount: numeroPtBR().refine((v) => v > 0, "O valor precisa ser maior que zero."),
+  barberId: z.string().trim().optional(),
+});
+
+export const senhaSchema = z
+  .object({
+    senhaAtual: z.string().min(1, "Informe a senha atual."),
+    novaSenha: z.string().min(6, "A nova senha precisa ter pelo menos 6 caracteres."),
+    confirmarSenha: z.string().min(1, "Confirme a nova senha."),
+  })
+  .refine((data) => data.novaSenha === data.confirmarSenha, {
+    message: "A confirmação não corresponde à nova senha.",
+    path: ["confirmarSenha"],
+  });
+
+export const comissaoSchema = z.object({
+  commissionPercentage: numeroPtBR().refine((v) => v >= 0 && v <= 100, "Informe um percentual válido entre 0 e 100."),
+});
+
+export const saldoBancarioSchema = z.object({
+  saldoBancario: numeroPtBR(),
+});
+
+export const servicoSchema = z.object({
+  name: z.string().trim().min(1, "Informe o nome do serviço."),
+  price: numeroPtBROpcional(),
+});
+
+export const atualizarPrecoSchema = z.object({
+  price: numeroPtBROpcional(),
+});
+
+export const descontoSchema = z.object({
+  discountPercentage: numeroPtBR().refine((v) => v >= 1 && v <= 100, "Informe um percentual de desconto válido entre 1 e 100."),
+  discountValidUntil: z.string().trim().optional(),
+});
+
+export const pushSubscribeSchema = z.object({
+  endpoint: z.string().min(1, "Endpoint inválido."),
+  keys: z.object({
+    p256dh: z.string().min(1),
+    auth: z.string().min(1),
+  }),
+});

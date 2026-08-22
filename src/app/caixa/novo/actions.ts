@@ -5,6 +5,7 @@ import { auth } from "@/auth";
 import { revalidatePath } from "next/cache";
 import { after } from "next/server";
 import { enviarPushParaDonos } from "@/lib/push";
+import { transacaoSchema } from "@/lib/schemas";
 
 export async function registrarTransacao(formData: FormData) {
   const session = await auth();
@@ -13,15 +14,12 @@ export async function registrarTransacao(formData: FormData) {
   const role = (session.user as any).role;
   const userId = (session.user as any).id;
 
-  const type = formData.get("type") as "INCOME" | "EXPENSE";
-  const category = formData.get("category") as string;
-  const description = (formData.get("description") as string) || null;
-  const amountRaw = formData.get("amount") as string;
-  const amount = parseFloat((amountRaw || "").replace(",", "."));
-
-  if (!type || !category || !amountRaw || isNaN(amount) || amount <= 0) {
-    return { erro: "Preencha todos os campos corretamente." };
+  const validacao = transacaoSchema.safeParse(Object.fromEntries(formData));
+  if (!validacao.success) {
+    return { erro: validacao.error.issues[0].message };
   }
+
+  const { type, category, description, amount, barberId: barberIdForm } = validacao.data;
 
   if (role === "BARBER" && type !== "INCOME") {
     return { erro: "Barbeiros só podem lançar serviços realizados." };
@@ -33,7 +31,6 @@ export async function registrarTransacao(formData: FormData) {
     if (role === "BARBER") {
       barberId = userId;
     } else if (role === "OWNER") {
-      const barberIdForm = formData.get("barberId") as string;
       if (!barberIdForm) return { erro: "Selecione o barbeiro responsável pelo serviço." };
       barberId = barberIdForm;
     }
@@ -50,7 +47,16 @@ export async function registrarTransacao(formData: FormData) {
   }
 
   await prisma.transaction.create({
-    data: { type, category, description, amount, barberId, commissionPercentage, commissionAmount, createdById: userId },
+    data: {
+      type,
+      category,
+      description: description || null,
+      amount,
+      barberId,
+      commissionPercentage,
+      commissionAmount,
+      createdById: userId,
+    },
   });
 
   if (role === "BARBER") {
