@@ -16,7 +16,7 @@ function construirCSP(nonce: string) {
 }
 
 function aplicarHeadersSeguranca(response: NextResponse, cspHeader: string) {
-  response.headers.set("Content-Security-Policy-Report-Only", cspHeader);
+  response.headers.set("Content-Security-Policy", cspHeader);
   response.headers.set("X-Frame-Options", "DENY");
   response.headers.set("X-Content-Type-Options", "nosniff");
   response.headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
