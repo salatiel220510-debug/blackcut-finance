@@ -41,6 +41,7 @@ export const transacaoSchema = z.object({
   description: z.string().trim().max(500, "Descrição muito longa.").optional(),
   amount: numeroPtBR().refine((v) => v > 0, "O valor precisa ser maior que zero."),
   barberId: z.string().trim().optional(),
+  expenseCategoryId: z.string().trim().optional(),
 });
 
 export const senhaSchema = z
@@ -83,19 +84,11 @@ export const pushSubscribeSchema = z.object({
     auth: z.string().min(1),
   }),
 });
-export const envelopesSchema = z
-  .object({
-    envelopeOperacionalPct: numeroPtBR().refine((v) => v >= 0 && v <= 100, "Percentual inválido."),
-    envelopeProLaborePct: numeroPtBR().refine((v) => v >= 0 && v <= 100, "Percentual inválido."),
-    envelopeReservaPct: numeroPtBR().refine((v) => v >= 0 && v <= 100, "Percentual inválido."),
-  })
-  .refine(
-    (data) => {
-      const soma = data.envelopeOperacionalPct + data.envelopeProLaborePct + data.envelopeReservaPct;
-      return Math.abs(soma - 100) < 0.01;
-    },
-    { message: "A soma dos três percentuais precisa ser exatamente 100%.", path: ["envelopeReservaPct"] }
-  );
+export const envelopesSchema = z.object({
+  envelopeOperacionalPct: numeroPtBR().refine((v) => v >= 0 && v <= 100, "Percentual inválido."),
+  envelopeProLaborePct: numeroPtBR().refine((v) => v >= 0 && v <= 100, "Percentual inválido."),
+  envelopeReservaPct: numeroPtBR().refine((v) => v >= 0 && v <= 100, "Percentual inválido."),
+});
 
 export const metasSchema = z.object({
   proLaboreMeta: numeroPtBROpcional(),

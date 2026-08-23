@@ -19,7 +19,7 @@ export async function registrarTransacao(formData: FormData) {
     return { erro: validacao.error.issues[0].message };
   }
 
-  const { type, category, description, amount, barberId: barberIdForm } = validacao.data;
+  const { type, category, description, amount, barberId: barberIdForm, expenseCategoryId } = validacao.data;
 
   if (role === "BARBER" && type !== "INCOME") {
     return { erro: "Barbeiros só podem lançar serviços realizados." };
@@ -55,6 +55,7 @@ export async function registrarTransacao(formData: FormData) {
       barberId,
       commissionPercentage,
       commissionAmount,
+      expenseCategoryId: type === "EXPENSE" ? (expenseCategoryId || null) : null,
       createdById: userId,
     },
   });
@@ -72,5 +73,6 @@ export async function registrarTransacao(formData: FormData) {
   }
 
   revalidatePath("/caixa");
+  revalidatePath("/admin/fechamento");
   return { sucesso: true };
 }

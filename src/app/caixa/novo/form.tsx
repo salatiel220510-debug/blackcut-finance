@@ -9,21 +9,24 @@ type Servico = {
   discountedPrice: number | null;
   discountPercentage: number | null;
 };
+type CategoriaDespesa = { id: string; name: string };
 
-const CATEGORIAS_DESPESA = ["Aluguel", "Insumos", "Contas", "Manutenção", "Outros"];
 const inputClass = "bg-black-deep border border-gold-dark/40 rounded-lg px-3 py-2 text-white w-full";
 
 export default function NovaTransacaoForm({
   role,
   barbeiros,
   servicos,
+  categoriasDespesa,
 }: {
   role: string;
   barbeiros: Barbeiro[];
   servicos: Servico[];
+  categoriasDespesa: CategoriaDespesa[];
 }) {
   const [tipo, setTipo] = useState<"INCOME" | "EXPENSE">("INCOME");
   const [categoria, setCategoria] = useState(servicos[0]?.name ?? "");
+  const [categoriaDespesaId, setCategoriaDespesaId] = useState(categoriasDespesa[0]?.id ?? "");
   const [valor, setValor] = useState(
     (servicos[0]?.discountedPrice ?? servicos[0]?.price)?.toString() ?? ""
   );
@@ -41,6 +44,12 @@ export default function NovaTransacaoForm({
 
     const formData = new FormData(e.currentTarget);
     formData.set("type", tipo);
+
+    if (tipo === "EXPENSE") {
+      const categoriaObj = categoriasDespesa.find((c) => c.id === categoriaDespesaId);
+      formData.set("category", categoriaObj?.name ?? "");
+      formData.set("expenseCategoryId", categoriaDespesaId);
+    }
 
     try {
       const resultado = await registrarTransacao(formData);
@@ -74,8 +83,6 @@ export default function NovaTransacaoForm({
     setValor(preencherValorPadrao(nome, tipo));
   }
 
-  const categorias = tipo === "INCOME" ? servicos.map((s) => s.name) : CATEGORIAS_DESPESA;
-
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-4 border border-gold-dark/40 bg-black-soft rounded-xl p-6">
       {role === "OWNER" && (
@@ -86,9 +93,14 @@ export default function NovaTransacaoForm({
             onChange={(e) => {
               const novoTipo = e.target.value as "INCOME" | "EXPENSE";
               setTipo(novoTipo);
-              const novaCategoria = novoTipo === "INCOME" ? (servicos[0]?.name ?? "") : (CATEGORIAS_DESPESA[0] ?? "");
-              setCategoria(novaCategoria);
-              setValor(preencherValorPadrao(novaCategoria, novoTipo));
+              if (novoTipo === "INCOME") {
+                const novaCategoria = servicos[0]?.name ?? "";
+                setCategoria(novaCategoria);
+                setValor(preencherValorPadrao(novaCategoria, novoTipo));
+              } else {
+                setCategoriaDespesaId(categoriasDespesa[0]?.id ?? "");
+                setValor("");
+              }
             }}
             className={inputClass}
           >
@@ -108,17 +120,32 @@ export default function NovaTransacaoForm({
         </div>
       )}
 
-      <div>
-        <label className="text-sm text-gray-400 block mb-1">Categoria</label>
-        <select name="category" value={categoria} onChange={(e) => handleCategoriaChange(e.target.value)} required className={inputClass}>
-          {categorias.map((c) => <option key={c} value={c}>{c}</option>)}
-        </select>
-        {temDesconto && (
-          <p className="text-gold text-xs mt-1">
-            🏷️ {servicoSelecionado?.discountPercentage}% de desconto aplicado automaticamente
-          </p>
-        )}
-      </div>
+      {tipo === "INCOME" ? (
+        <div>
+          <label className="text-sm text-gray-400 block mb-1">Categoria</label>
+          <select name="category" value={categoria} onChange={(e) => handleCategoriaChange(e.target.value)} required className={inputClass}>
+            {servicos.map((s) => <option key={s.name} value={s.name}>{s.name}</option>)}
+          </select>
+          {temDesconto && (
+            <p className="text-gold text-xs mt-1">
+              🏷️ {servicoSelecionado?.discountPercentage}% de desconto aplicado automaticamente
+            </p>
+          )}
+        </div>
+      ) : (
+        <div>
+          <label className="text-sm text-gray-400 block mb-1">Categoria de Despesa</label>
+          {categoriasDespesa.length === 0 ? (
+            <p className="text-red-400 text-sm">
+              Nenhuma categoria de despesa cadastrada. Crie uma em Configurações antes de continuar.
+            </p>
+          ) : (
+            <select value={categoriaDespesaId} onChange={(e) => setCategoriaDespesaId(e.target.value)} required className={inputClass}>
+              {categoriasDespesa.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+            </select>
+          )}
+        </div>
+      )}
 
       <div>
         <label className="text-sm text-gray-400 block mb-1">Valor (R$)</label>
@@ -130,7 +157,11 @@ export default function NovaTransacaoForm({
         <input name="description" type="text" className={inputClass} />
       </div>
 
-      <button type="submit" disabled={carregando} className="bg-gold text-black-deep font-semibold rounded-lg py-2 hover:bg-gold-light transition-colors disabled:opacity-50">
+      <button
+        type="submit"
+        disabled={carregando || (tipo === "EXPENSE" && categoriasDespesa.length === 0)}
+        className="bg-gold text-black-deep font-semibold rounded-lg py-2 hover:bg-gold-light transition-colors disabled:opacity-50"
+      >
         {carregando ? "Registrando..." : "Registrar"}
       </button>
       {mensagem && <p className={sucesso ? "text-green-400 text-sm" : "text-red-400 text-sm"}>{mensagem}</p>}

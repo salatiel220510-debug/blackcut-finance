@@ -25,6 +25,11 @@ export default async function NovaTransacaoPage() {
     orderBy: { name: "asc" },
   });
 
+  const categoriasDespesa = await prisma.expenseCategory.findMany({
+    where: { active: true },
+    orderBy: { name: "asc" },
+  });
+
   const agora = new Date();
   const servicosComDesconto = servicos.map((s) => {
     const precoOriginal = s.price ? Number(s.price) : null;
@@ -50,7 +55,12 @@ export default async function NovaTransacaoPage() {
       <div className="flex-1 flex flex-col">
         <main className="flex-1 max-w-md w-full mx-auto px-4 py-8">
           <h1 className="font-display text-2xl text-gold mb-6">Novo Lançamento</h1>
-          <NovaTransacaoForm role={role} barbeiros={barbeiros} servicos={servicosComDesconto} />
+          <NovaTransacaoForm
+            role={role}
+            barbeiros={barbeiros}
+            servicos={servicosComDesconto}
+            categoriasDespesa={categoriasDespesa.map((c) => ({ id: c.id, name: c.name }))}
+          />
         </main>
         <Footer />
       </div>

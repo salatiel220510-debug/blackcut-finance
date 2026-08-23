@@ -113,13 +113,16 @@ export async function atualizarEnvelopes(formData: FormData) {
   const validacao = envelopesSchema.safeParse(Object.fromEntries(formData));
   if (!validacao.success) return { erro: validacao.error.issues[0].message };
 
+  const { envelopeOperacionalPct, envelopeProLaborePct, envelopeReservaPct } = validacao.data;
+  const soma = envelopeOperacionalPct + envelopeProLaborePct + envelopeReservaPct;
+
+  if (Math.abs(soma - 100) > 0.01) {
+    return { erro: `A soma dos três percentuais precisa ser exatamente 100% (está em ${soma.toFixed(2)}%).` };
+  }
+
   await prisma.settings.update({
     where: { id: 1 },
-    data: {
-      envelopeOperacionalPct: validacao.data.envelopeOperacionalPct,
-      envelopeProLaborePct: validacao.data.envelopeProLaborePct,
-      envelopeReservaPct: validacao.data.envelopeReservaPct,
-    },
+    data: { envelopeOperacionalPct, envelopeProLaborePct, envelopeReservaPct },
   });
   revalidatePath("/admin/configuracoes");
   return { sucesso: true };

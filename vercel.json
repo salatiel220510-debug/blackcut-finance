@@ -1,8 +1,6 @@
 {
   "crons": [
-    {
-      "path": "/api/cron/resumo-diario",
-      "schedule": "0 3 * * *"
-    }
+    { "path": "/api/cron/resumo-diario", "schedule": "0 3 * * *" },
+    { "path": "/api/cron/fechamento-mensal", "schedule": "0 5 1 * *" }
   ]
 }
