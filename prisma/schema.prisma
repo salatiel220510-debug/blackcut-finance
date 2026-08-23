@@ -1,8 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Get a free hosted Postgres database in seconds: `npx create-db`
-
 generator client {
   provider = "prisma-client"
   output   = "../src/generated/prisma"
@@ -28,24 +23,30 @@ enum TransactionType {
   EXPENSE
 }
 
-model User {
-  id           String        @id @default(cuid())
-  name         String
-  email        String        @unique
-  passwordHash String
-  role         Role          @default(BARBER)
-  status       AccountStatus @default(PENDING)
-  createdAt    DateTime      @default(now())
-  needsAccessCode Boolean @default(false)
+enum ExpenseCategoryType {
+  FIXED
+  VARIABLE
+  INVESTMENT
+  MARKETING
+}
 
-  servicosRealizados  Transaction[] @relation("Barbeiro")
-  transacoesCriadas   Transaction[] @relation("CriadoPor")
-  transacoesExcluidas Transaction[] @relation("ExcluidoPor")
+model User {
+  id              String        @id @default(cuid())
+  name            String
+  email           String        @unique
+  passwordHash    String
+  role            Role          @default(BARBER)
+  status          AccountStatus @default(PENDING)
+  createdAt       DateTime      @default(now())
+  needsAccessCode Boolean       @default(false)
+
+  servicosRealizados  Transaction[]      @relation("Barbeiro")
+  transacoesCriadas   Transaction[]      @relation("CriadoPor")
+  transacoesExcluidas Transaction[]      @relation("ExcluidoPor")
+  pushSubscriptions   PushSubscription[]
 
   @@index([status])
   @@index([role])
-
-  pushSubscriptions   PushSubscription[]
 }
 
 model Transaction {
@@ -61,6 +62,9 @@ model Transaction {
   commissionPercentage Decimal? @db.Decimal(5, 2)
   commissionAmount     Decimal? @db.Decimal(10, 2)
 
+  expenseCategoryId String?
+  expenseCategory   ExpenseCategory? @relation(fields: [expenseCategoryId], references: [id])
+
   createdById String
   createdBy   User     @relation("CriadoPor", fields: [createdById], references: [id])
   createdAt   DateTime @default(now())
@@ -73,15 +77,24 @@ model Transaction {
   @@index([barberId])
   @@index([type])
   @@index([deletedAt])
+  @@index([expenseCategoryId])
 }
 
 model Settings {
-  id                   Int       @id @default(1)
-  commissionPercentage Decimal   @default(40.00) @db.Decimal(5, 2)
-  saldoBancario        Decimal   @default(0) @db.Decimal(10, 2)
-  accessCode           String?
-  accessCodeUpdatedAt  DateTime?
-  updatedAt            DateTime  @updatedAt
+  id                     Int       @id @default(1)
+  commissionPercentage   Decimal   @default(40.00) @db.Decimal(5, 2)
+  saldoBancario          Decimal   @default(0) @db.Decimal(10, 2)
+  accessCode             String?
+  accessCodeUpdatedAt    DateTime?
+
+  envelopesEnabled       Boolean   @default(true)
+  envelopeOperacionalPct Decimal   @default(60) @db.Decimal(5, 2)
+  envelopeProLaborePct   Decimal   @default(30) @db.Decimal(5, 2)
+  envelopeReservaPct     Decimal   @default(10) @db.Decimal(5, 2)
+  proLaboreMeta          Decimal?  @db.Decimal(10, 2)
+  reservaMeta            Decimal?  @db.Decimal(10, 2)
+
+  updatedAt              DateTime  @updatedAt
 }
 
 model ServiceType {
@@ -93,6 +106,39 @@ model ServiceType {
   active             Boolean   @default(true)
   createdAt          DateTime  @default(now())
   updatedAt          DateTime  @updatedAt
+}
+
+model ExpenseCategory {
+  id          String              @id @default(cuid())
+  name        String              @unique
+  type        ExpenseCategoryType
+  budgetLimit Decimal?            @db.Decimal(10, 2)
+  active      Boolean             @default(true)
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+
+  transacoes  Transaction[]
+
+  @@index([type])
+}
+
+model MonthlyClosure {
+  id                     String   @id @default(cuid())
+  mes                    DateTime
+  faturamentoBruto       Decimal  @db.Decimal(10, 2)
+  totalDespesasFixas     Decimal  @db.Decimal(10, 2)
+  totalDespesasVariaveis Decimal  @db.Decimal(10, 2)
+  totalInvestimento      Decimal  @db.Decimal(10, 2)
+  totalMarketing         Decimal  @db.Decimal(10, 2)
+  totalDespesas          Decimal  @db.Decimal(10, 2)
+  totalComissoes         Decimal  @db.Decimal(10, 2)
+  lucroLiquido           Decimal  @db.Decimal(10, 2)
+  envelopeOperacional    Decimal  @db.Decimal(10, 2)
+  envelopeProLabore      Decimal  @db.Decimal(10, 2)
+  envelopeReserva        Decimal  @db.Decimal(10, 2)
+  createdAt              DateTime @default(now())
+
+  @@unique([mes])
 }
 
 model PushSubscription {

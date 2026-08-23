@@ -13,6 +13,7 @@ export default async function ConfiguracoesPage() {
   const nome = session.user?.name ?? "";
   const settings = await prisma.settings.findUnique({ where: { id: 1 } });
   const servicos = await prisma.serviceType.findMany({ orderBy: { name: "asc" } });
+  const categorias = await prisma.expenseCategory.findMany({ orderBy: { name: "asc" } });
 
   return (
     <div className="min-h-screen flex flex-row">
@@ -23,6 +24,15 @@ export default async function ConfiguracoesPage() {
           <ConfiguracoesForm
             comissaoAtual={settings ? Number(settings.commissionPercentage) : 40}
             saldoAtual={settings ? Number(settings.saldoBancario) : 0}
+            envelopes={{
+              operacional: settings ? Number(settings.envelopeOperacionalPct) : 60,
+              proLabore: settings ? Number(settings.envelopeProLaborePct) : 30,
+              reserva: settings ? Number(settings.envelopeReservaPct) : 10,
+            }}
+            metas={{
+              proLabore: settings?.proLaboreMeta ? Number(settings.proLaboreMeta) : null,
+              reserva: settings?.reservaMeta ? Number(settings.reservaMeta) : null,
+            }}
             servicos={servicos.map((s) => ({
               id: s.id,
               name: s.name,
@@ -30,6 +40,13 @@ export default async function ConfiguracoesPage() {
               active: s.active,
               discountPercentage: s.discountPercentage ? Number(s.discountPercentage) : null,
               discountValidUntil: s.discountValidUntil ? s.discountValidUntil.toISOString() : null,
+            }))}
+            categorias={categorias.map((c) => ({
+              id: c.id,
+              name: c.name,
+              type: c.type,
+              budgetLimit: c.budgetLimit ? Number(c.budgetLimit) : null,
+              active: c.active,
             }))}
           />
         </main>

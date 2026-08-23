@@ -9,6 +9,10 @@ import {
   servicoSchema,
   atualizarPrecoSchema,
   descontoSchema,
+  envelopesSchema,
+  metasSchema,
+  categoriaDespesaSchema,
+  atualizarBudgetSchema,
 } from "@/lib/schemas";
 
 async function verificarDono() {
@@ -102,4 +106,69 @@ export async function atualizarSaldoBancario(formData: FormData) {
   revalidatePath("/admin/configuracoes");
   revalidatePath("/caixa");
   return { sucesso: true };
+}
+
+export async function atualizarEnvelopes(formData: FormData) {
+  await verificarDono();
+  const validacao = envelopesSchema.safeParse(Object.fromEntries(formData));
+  if (!validacao.success) return { erro: validacao.error.issues[0].message };
+
+  await prisma.settings.update({
+    where: { id: 1 },
+    data: {
+      envelopeOperacionalPct: validacao.data.envelopeOperacionalPct,
+      envelopeProLaborePct: validacao.data.envelopeProLaborePct,
+      envelopeReservaPct: validacao.data.envelopeReservaPct,
+    },
+  });
+  revalidatePath("/admin/configuracoes");
+  return { sucesso: true };
+}
+
+export async function atualizarMetas(formData: FormData) {
+  await verificarDono();
+  const validacao = metasSchema.safeParse(Object.fromEntries(formData));
+  if (!validacao.success) return { erro: validacao.error.issues[0].message };
+
+  await prisma.settings.update({
+    where: { id: 1 },
+    data: {
+      proLaboreMeta: validacao.data.proLaboreMeta ?? null,
+      reservaMeta: validacao.data.reservaMeta ?? null,
+    },
+  });
+  revalidatePath("/admin/configuracoes");
+  return { sucesso: true };
+}
+
+export async function criarCategoriaDespesa(formData: FormData) {
+  await verificarDono();
+  const validacao = categoriaDespesaSchema.safeParse(Object.fromEntries(formData));
+  if (!validacao.success) return { erro: validacao.error.issues[0].message };
+
+  const { name, type, budgetLimit } = validacao.data;
+  const existente = await prisma.expenseCategory.findUnique({ where: { name } });
+  if (existente) return { erro: "Já existe uma categoria com esse nome." };
+
+  await prisma.expenseCategory.create({ data: { name, type, budgetLimit: budgetLimit ?? null } });
+  revalidatePath("/admin/configuracoes");
+  return { sucesso: true };
+}
+
+export async function atualizarBudgetCategoria(id: string, formData: FormData) {
+  await verificarDono();
+  const validacao = atualizarBudgetSchema.safeParse(Object.fromEntries(formData));
+  if (!validacao.success) return { erro: validacao.error.issues[0].message };
+
+  await prisma.expenseCategory.update({
+    where: { id },
+    data: { budgetLimit: validacao.data.budgetLimit ?? null },
+  });
+  revalidatePath("/admin/configuracoes");
+}
+
+export async function desativarCategoriaDespesa(id: string) {
+  await verificarDono();
+  await prisma.expenseCategory.update({ where: { id }, data: { active: false } });
+  revalidatePath("/admin/configuracoes");
 }

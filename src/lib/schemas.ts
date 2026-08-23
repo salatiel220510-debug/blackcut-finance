@@ -83,3 +83,31 @@ export const pushSubscribeSchema = z.object({
     auth: z.string().min(1),
   }),
 });
+export const envelopesSchema = z
+  .object({
+    envelopeOperacionalPct: numeroPtBR().refine((v) => v >= 0 && v <= 100, "Percentual inválido."),
+    envelopeProLaborePct: numeroPtBR().refine((v) => v >= 0 && v <= 100, "Percentual inválido."),
+    envelopeReservaPct: numeroPtBR().refine((v) => v >= 0 && v <= 100, "Percentual inválido."),
+  })
+  .refine(
+    (data) => {
+      const soma = data.envelopeOperacionalPct + data.envelopeProLaborePct + data.envelopeReservaPct;
+      return Math.abs(soma - 100) < 0.01;
+    },
+    { message: "A soma dos três percentuais precisa ser exatamente 100%.", path: ["envelopeReservaPct"] }
+  );
+
+export const metasSchema = z.object({
+  proLaboreMeta: numeroPtBROpcional(),
+  reservaMeta: numeroPtBROpcional(),
+});
+
+export const categoriaDespesaSchema = z.object({
+  name: z.string().trim().min(1, "Informe o nome da categoria."),
+  type: z.enum(["FIXED", "VARIABLE", "INVESTMENT", "MARKETING"]),
+  budgetLimit: numeroPtBROpcional(),
+});
+
+export const atualizarBudgetSchema = z.object({
+  budgetLimit: numeroPtBROpcional(),
+});
