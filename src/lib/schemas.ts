@@ -104,3 +104,17 @@ export const categoriaDespesaSchema = z.object({
 export const atualizarBudgetSchema = z.object({
   budgetLimit: numeroPtBROpcional(),
 });
+
+export const comandaSchema = z.object({
+  barberId: z.string().trim().optional(),
+  paymentMethod: z.enum(["DINHEIRO", "PIX", "CARTAO_DEBITO", "CARTAO_CREDITO"]),
+  clienteNome: z.string().trim().max(100).optional(),
+  itens: z
+    .array(
+      z.object({
+        category: z.string().trim().min(1, "Informe a categoria do item."),
+        amount: z.number().positive("O valor do item precisa ser maior que zero."),
+      })
+    )
+    .min(1, "Adicione pelo menos um item à comanda."),
+});

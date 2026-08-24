@@ -30,6 +30,13 @@ enum ExpenseCategoryType {
   MARKETING
 }
 
+enum PaymentMethod {
+  DINHEIRO
+  PIX
+  CARTAO_DEBITO
+  CARTAO_CREDITO
+}
+
 model User {
   id              String        @id @default(cuid())
   name            String
@@ -65,6 +72,10 @@ model Transaction {
   expenseCategoryId String?
   expenseCategory   ExpenseCategory? @relation(fields: [expenseCategoryId], references: [id])
 
+  comandaId     String?
+  paymentMethod PaymentMethod?
+  clienteNome   String?
+
   createdById String
   createdBy   User     @relation("CriadoPor", fields: [createdById], references: [id])
   createdAt   DateTime @default(now())
@@ -78,6 +89,7 @@ model Transaction {
   @@index([type])
   @@index([deletedAt])
   @@index([expenseCategoryId])
+  @@index([comandaId])
 }
 
 model Settings {
