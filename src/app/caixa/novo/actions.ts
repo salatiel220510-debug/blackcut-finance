@@ -5,6 +5,7 @@ import { auth } from "@/auth";
 import { revalidatePath } from "next/cache";
 import { after } from "next/server";
 import { enviarPushParaDonos } from "@/lib/push";
+import { verificarAlertaOrcamento } from "@/lib/alertasOrcamento";
 import { transacaoSchema } from "@/lib/schemas";
 
 export async function registrarTransacao(formData: FormData) {
@@ -46,6 +47,8 @@ export async function registrarTransacao(formData: FormData) {
     commissionAmount = Number((amount * (percentual / 100)).toFixed(2));
   }
 
+  const categoriaFinal = type === "EXPENSE" ? (expenseCategoryId || null) : null;
+
   await prisma.transaction.create({
     data: {
       type,
@@ -55,7 +58,7 @@ export async function registrarTransacao(formData: FormData) {
       barberId,
       commissionPercentage,
       commissionAmount,
-      expenseCategoryId: type === "EXPENSE" ? (expenseCategoryId || null) : null,
+      expenseCategoryId: categoriaFinal,
       createdById: userId,
     },
   });
@@ -69,6 +72,12 @@ export async function registrarTransacao(formData: FormData) {
         title: "Novo lançamento no caixa",
         body: `${nomeUsuario} registrou ${category} — ${formatar(amount)}`,
       }).catch((e) => console.error("[push] erro ao notificar:", e));
+    });
+  }
+
+  if (type === "EXPENSE" && categoriaFinal) {
+    after(async () => {
+      await verificarAlertaOrcamento(categoriaFinal).catch((e) => console.error("[alerta-orcamento] erro:", e));
     });
   }
 
