@@ -3,9 +3,11 @@ import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
-import BotaoExcluirTransacao from "@/components/BotaoExcluirTransacao";
+import SeletorData from "@/components/SeletorData";
+import ListaTransacoesDia, { TransacaoView } from "@/components/ListaTransacoesDia";
+import { limitesDoDiaEspecifico, hojeBrasilString } from "@/lib/datasBrasil";
 
-export default async function CaixaPage() {
+export default async function CaixaPage({ searchParams }: { searchParams: Promise<{ data?: string }> }) {
   const session = await auth();
   if (!session?.user) redirect("/login");
 
@@ -13,20 +15,24 @@ export default async function CaixaPage() {
   const userId = (session.user as any).id;
   const nome = session.user?.name ?? "";
 
-  const [entradasAgg, saidasAgg, comissoesAgg, transacoes, settings] = await Promise.all([
+  const params = await searchParams;
+  const dataSelecionada = params.data || hojeBrasilString();
+  const { inicio, fim } = limitesDoDiaEspecifico(dataSelecionada);
+
+  const [entradasAgg, saidasAgg, comissoesAgg, settings, transacoesDoDia] = await Promise.all([
     prisma.transaction.aggregate({ where: { type: "INCOME", deletedAt: null }, _sum: { amount: true } }),
     prisma.transaction.aggregate({ where: { type: "EXPENSE", deletedAt: null }, _sum: { amount: true } }),
-    prisma.transaction.aggregate({
-      where: { type: "INCOME", deletedAt: null, commissionAmount: { not: null } },
-      _sum: { commissionAmount: true },
-    }),
-    prisma.transaction.findMany({
-      where: { deletedAt: null },
-      orderBy: { date: "desc" },
-      take: 50,
-      include: { barber: { select: { name: true } } },
-    }),
+   prisma.transaction.aggregate({
+  where: { type: "INCOME", deletedAt: null, commissionAmount: { not: null }, commissionSettled: false },
+  _sum: { commissionAmount: true },
+})
+  ,
     prisma.settings.findUnique({ where: { id: 1 } }),
+    prisma.transaction.findMany({
+      where: { deletedAt: null, date: { gte: inicio, lte: fim } },
+      orderBy: { date: "desc" },
+      include: { barber: { select: { name: true } }, createdBy: { select: { name: true } } },
+    }),
   ]);
 
   const totalEntradas = Number(entradasAgg._sum.amount ?? 0);
@@ -35,6 +41,41 @@ export default async function CaixaPage() {
   const saldo = totalEntradas - totalSaidas;
   const fundosAcumulados = totalEntradas - totalSaidas - totalComissoes;
   const saldoBancario = settings ? Number(settings.saldoBancario) : 0;
+
+  const paraView = (t: (typeof transacoesDoDia)[number]): TransacaoView => ({
+    id: t.id,
+    type: t.type,
+    category: t.category,
+    description: t.description,
+    amount: Number(t.amount),
+    date: t.date.toISOString(),
+    barberNome: t.barber?.name ?? null,
+    commissionAmount: t.commissionAmount ? Number(t.commissionAmount) : null,
+    paymentMethod: t.paymentMethod,
+    clienteNome: t.clienteNome,
+    comandaId: t.comandaId,
+    criadoPorNome: t.createdBy.name,
+    podeExcluir: role === "OWNER" || t.createdById === userId,
+  });
+
+  const transacoesView = transacoesDoDia.map(paraView);
+  const servicosDoDia = transacoesView.filter((t) => t.type === "INCOME");
+  const gastosDoDia = transacoesView.filter((t) => t.type === "EXPENSE");
+
+  const comandaIds = [...new Set(transacoesView.filter((t) => t.comandaId).map((t) => t.comandaId as string))];
+  const itensComandas = comandaIds.length
+    ? await prisma.transaction.findMany({
+        where: { comandaId: { in: comandaIds }, deletedAt: null },
+        include: { barber: { select: { name: true } }, createdBy: { select: { name: true } } },
+      })
+    : [];
+
+  const itensPorComanda: Record<string, TransacaoView[]> = {};
+  for (const item of itensComandas.map(paraView)) {
+    if (!item.comandaId) continue;
+    if (!itensPorComanda[item.comandaId]) itensPorComanda[item.comandaId] = [];
+    itensPorComanda[item.comandaId].push(item);
+  }
 
   const formatar = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
@@ -46,8 +87,8 @@ export default async function CaixaPage() {
           <h1 className="font-display text-2xl text-gold mb-6">Fluxo de Caixa</h1>
 
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
-            <Card titulo="Entradas" valor={formatar(totalEntradas)} />
-            <Card titulo="Saídas" valor={formatar(totalSaidas)} />
+            <Card titulo="Entradas (total)" valor={formatar(totalEntradas)} />
+            <Card titulo="Saídas (total)" valor={formatar(totalSaidas)} />
             <Card titulo="Saldo" valor={formatar(saldo)} destaque={saldo >= 0} negativo={saldo < 0} />
             <Card titulo="Comissões" valor={formatar(totalComissoes)} />
           </div>
@@ -66,46 +107,14 @@ export default async function CaixaPage() {
                 </tr>
               </tbody>
             </table>
-            <p className="text-xs text-gray-500 mt-2">
-              O saldo bancário é atualizado manualmente pelo dono em Configurações — útil para conferir se bate com o calculado.
-            </p>
           </div>
 
-          <p className="text-sm text-gray-400 mb-3">Exibindo os últimos {transacoes.length} lançamentos.</p>
-
-          <div className="flex flex-col gap-3">
-            {transacoes.map((t) => {
-              const podeExcluir = role === "OWNER" || t.createdById === userId;
-              const entrada = t.type === "INCOME";
-              return (
-                <div key={t.id} className="border border-gold-dark/30 bg-black-soft rounded-xl p-4">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <span
-                        className={`inline-block text-xs font-semibold px-2 py-0.5 rounded-full mb-1.5 ${
-                          entrada ? "bg-green-400/10 text-green-400" : "bg-red-400/10 text-red-400"
-                        }`}
-                      >
-                        {entrada ? "Entrada" : "Saída"}
-                      </span>
-                      <p className="text-white font-semibold truncate">{t.category}</p>
-                      {t.barber?.name && <p className="text-gray-400 text-xs mt-0.5">{t.barber.name}</p>}
-                    </div>
-                    <div className="text-right shrink-0">
-                      <p className="text-white font-bold">{formatar(Number(t.amount))}</p>
-                      {t.commissionAmount != null && (
-                        <p className="text-gold text-xs mt-0.5">Comissão: {formatar(Number(t.commissionAmount))}</p>
-                      )}
-                    </div>
-                  </div>
-                  <div className="flex items-center justify-between mt-3 pt-3 border-t border-gold-dark/10">
-                    <span className="text-gray-500 text-xs">{new Date(t.date).toLocaleDateString("pt-BR")}</span>
-                    {podeExcluir && <BotaoExcluirTransacao id={t.id} />}
-                  </div>
-                </div>
-              );
-            })}
+          <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
+            <h2 className="font-display text-lg text-gold">Lançamentos do dia</h2>
+            <SeletorData dataAtual={dataSelecionada} />
           </div>
+
+          <ListaTransacoesDia servicos={servicosDoDia} gastos={gastosDoDia} itensPorComanda={itensPorComanda} />
         </main>
         <Footer />
       </div>

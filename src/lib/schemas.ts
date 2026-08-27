@@ -118,3 +118,7 @@ export const comandaSchema = z.object({
     )
     .min(1, "Adicione pelo menos um item à comanda."),
 });
+
+export const liquidarComissaoSchema = z.object({
+  valorPago: numeroPtBR().refine((v) => v > 0, "Informe um valor maior que zero."),
+});

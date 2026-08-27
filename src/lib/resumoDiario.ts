@@ -1,26 +1,9 @@
 import { prisma } from "@/lib/prisma";
 import { enviarEmail } from "@/lib/email";
-
-function limitesDoDiaBrasil(referencia = new Date()) {
-  const OFFSET_BRASIL_HORAS = 3; // Brasília = UTC-3 (sem horário de verão desde 2019)
-  const brasilMs = referencia.getTime() - OFFSET_BRASIL_HORAS * 60 * 60 * 1000;
-  const brasil = new Date(brasilMs);
-
-  const ano = brasil.getUTCFullYear();
-  const mes = brasil.getUTCMonth();
-  const dia = brasil.getUTCDate();
-
-  const inicioBrasil = Date.UTC(ano, mes, dia, 0, 0, 0, 0);
-  const fimBrasil = Date.UTC(ano, mes, dia, 23, 59, 59, 999);
-
-  return {
-    inicio: new Date(inicioBrasil + OFFSET_BRASIL_HORAS * 60 * 60 * 1000),
-    fim: new Date(fimBrasil + OFFSET_BRASIL_HORAS * 60 * 60 * 1000),
-  };
-}
+import { limitesDoDiaEspecifico, hojeBrasilString } from "@/lib/datasBrasil";
 
 export async function enviarResumoDiario() {
-  const { inicio, fim } = limitesDoDiaBrasil();
+  const { inicio, fim } = limitesDoDiaEspecifico(hojeBrasilString());
 
   const transacoesHoje = await prisma.transaction.findMany({
     where: { date: { gte: inicio, lte: fim }, deletedAt: null },

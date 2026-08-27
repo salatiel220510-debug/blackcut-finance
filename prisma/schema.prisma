@@ -47,10 +47,12 @@ model User {
   createdAt       DateTime      @default(now())
   needsAccessCode Boolean       @default(false)
 
-  servicosRealizados  Transaction[]      @relation("Barbeiro")
-  transacoesCriadas   Transaction[]      @relation("CriadoPor")
-  transacoesExcluidas Transaction[]      @relation("ExcluidoPor")
-  pushSubscriptions   PushSubscription[]
+  servicosRealizados    Transaction[]          @relation("Barbeiro")
+  transacoesCriadas     Transaction[]          @relation("CriadoPor")
+  transacoesExcluidas   Transaction[]          @relation("ExcluidoPor")
+  pushSubscriptions     PushSubscription[]
+  comissoesLiquidadas   CommissionSettlement[] @relation("ComissoesLiquidadas")
+  liquidacoesRealizadas CommissionSettlement[] @relation("LiquidacoesRealizadas")
 
   @@index([status])
   @@index([role])
@@ -68,6 +70,7 @@ model Transaction {
   barber               User?    @relation("Barbeiro", fields: [barberId], references: [id])
   commissionPercentage Decimal? @db.Decimal(5, 2)
   commissionAmount     Decimal? @db.Decimal(10, 2)
+  commissionSettled    Boolean  @default(false)
 
   expenseCategoryId String?
   expenseCategory   ExpenseCategory? @relation(fields: [expenseCategoryId], references: [id])
@@ -84,12 +87,15 @@ model Transaction {
   deletedById String?
   deletedBy   User?     @relation("ExcluidoPor", fields: [deletedById], references: [id])
 
+  liquidacaoComoDespesa CommissionSettlement? @relation("DespesaDaLiquidacao")
+
   @@index([date])
   @@index([barberId])
   @@index([type])
   @@index([deletedAt])
   @@index([expenseCategoryId])
   @@index([comandaId])
+  @@index([commissionSettled])
 }
 
 model Settings {
@@ -151,6 +157,22 @@ model MonthlyClosure {
   createdAt              DateTime @default(now())
 
   @@unique([mes])
+}
+
+model CommissionSettlement {
+  id                   String       @id @default(cuid())
+  barberId             String
+  barber               User         @relation("ComissoesLiquidadas", fields: [barberId], references: [id])
+  totalAcumulado       Decimal      @db.Decimal(10, 2)
+  valorPago            Decimal      @db.Decimal(10, 2)
+  valorAbsorvido       Decimal      @db.Decimal(10, 2)
+  expenseTransactionId String?      @unique
+  expenseTransaction   Transaction? @relation("DespesaDaLiquidacao", fields: [expenseTransactionId], references: [id])
+  paidById             String
+  paidBy               User         @relation("LiquidacoesRealizadas", fields: [paidById], references: [id])
+  createdAt            DateTime     @default(now())
+
+  @@index([barberId])
 }
 
 model PushSubscription {

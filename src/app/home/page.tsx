@@ -65,9 +65,9 @@ export default async function HomePage() {
     prisma.transaction.aggregate({ where: { type: "INCOME", deletedAt: null }, _sum: { amount: true } }),
     prisma.transaction.aggregate({ where: { type: "EXPENSE", deletedAt: null }, _sum: { amount: true } }),
     prisma.transaction.aggregate({
-      where: { type: "INCOME", deletedAt: null, commissionAmount: { not: null } },
-      _sum: { commissionAmount: true },
-    }),
+  where: { type: "INCOME", deletedAt: null, commissionAmount: { not: null }, commissionSettled: false },
+  _sum: { commissionAmount: true },
+}),
     prisma.user.count({ where: { status: "PENDING" } }),
     serieUltimosDias(14),
     faturamentoPorBarbeiro(30),

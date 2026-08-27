@@ -32,9 +32,9 @@ export default async function PerfilPage() {
 
   if (role === "BARBER") {
     const agg = await prisma.transaction.aggregate({
-      where: { barberId: userId, type: "INCOME", deletedAt: null },
-      _sum: { amount: true, commissionAmount: true },
-    });
+  where: { type: "INCOME", deletedAt: null, commissionAmount: { not: null }, commissionSettled: false },
+  _sum: { amount: true, commissionAmount: true },
+})
     faturamentoTotal = Number(agg._sum.amount ?? 0);
     comissaoAcumulada = Number(agg._sum.commissionAmount ?? 0);
     nivel = calcularNivel(faturamentoTotal);
@@ -46,9 +46,9 @@ export default async function PerfilPage() {
       prisma.transaction.aggregate({ where: { type: "INCOME", deletedAt: null }, _sum: { amount: true } }),
       prisma.transaction.aggregate({ where: { type: "EXPENSE", deletedAt: null }, _sum: { amount: true } }),
       prisma.transaction.aggregate({
-        where: { type: "INCOME", deletedAt: null, commissionAmount: { not: null } },
-        _sum: { commissionAmount: true },
-      }),
+  where: { type: "INCOME", deletedAt: null, commissionAmount: { not: null }, commissionSettled: false },
+  _sum: { commissionAmount: true },
+})
     ]);
     lucroLiquido =
       Number(entradasAgg._sum.amount ?? 0) -

@@ -15,6 +15,9 @@ function IconeCaixa() {
 function IconeNovo() {
   return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" width={20} height={20}><circle cx="12" cy="12" r="10" /><path d="M12 8v8M8 12h8" /></svg>;
 }
+function IconeComissao() {
+  return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" width={20} height={20}><circle cx="12" cy="12" r="9" /><path d="M12 7v10M9 10a3 3 0 013-3h1a2 2 0 010 4h-2a2 2 0 000 4h1a3 3 0 003-3" /></svg>;
+}
 function IconeFechamento() {
   return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" width={20} height={20}><rect x="3" y="4" width="18" height="18" rx="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" /></svg>;
 }
@@ -46,6 +49,7 @@ const LINKS_COMUNS: ItemMenu[] = [
 ];
 
 const LINKS_DONO: ItemMenu[] = [
+  { href: "/admin/comissoes", label: "Comissões", icone: <IconeComissao /> },
   { href: "/admin/configuracoes", label: "Config.", icone: <IconeConfig /> },
   { href: "/admin/fechamento", label: "Fechamento", icone: <IconeFechamento /> },
   { href: "/admin/aprovacoes", label: "Aprovações", icone: <IconeAprovacoes /> },

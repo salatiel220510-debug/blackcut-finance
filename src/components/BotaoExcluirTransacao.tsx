@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { excluirTransacao } from "@/app/caixa/actions";
 
-export default function BotaoExcluirTransacao({ id }: { id: string }) {
+export default function BotaoExcluirTransacao({ id, onSucesso }: { id: string; onSucesso?: () => void }) {
   const [aberto, setAberto] = useState(false);
   const [codigo, setCodigo] = useState("");
   const [digitado, setDigitado] = useState("");
@@ -25,6 +25,7 @@ export default function BotaoExcluirTransacao({ id }: { id: string }) {
     try {
       await excluirTransacao(id);
       setAberto(false);
+      onSucesso?.();
     } catch (e: any) {
       setErro(e.message || "Erro ao excluir.");
     } finally {
