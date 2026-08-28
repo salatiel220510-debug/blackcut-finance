@@ -62,7 +62,7 @@ export default async function NovaTransacaoPage() {
             categoriasDespesa={categoriasDespesa.map((c) => ({ id: c.id, name: c.name }))}
           />
         </main>
-        <Footer />
+        <Footer role={role} />
       </div>
     </div>
   );

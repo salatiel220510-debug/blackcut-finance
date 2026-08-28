@@ -52,7 +52,7 @@ export default async function NovaComandaPage() {
           <h1 className="font-display text-2xl text-gold mb-6">Nova Comanda</h1>
           <FormComanda role={role} barbeiros={barbeiros} servicos={servicos} />
         </main>
-        <Footer />
+        <Footer role={role} />
       </div>
     </div>
   );

@@ -55,7 +55,7 @@ export default async function HomePage() {
               <BotaoGrande href="/caixa" label="Ver Fluxo de Caixa" />
             </div>
           </main>
-          <Footer />
+          <Footer role={role} />
         </div>
       </div>
     );
@@ -121,7 +121,7 @@ export default async function HomePage() {
             <BotaoGrande href="/admin/configuracoes" label="Preços & Comissão" />
           </div>
         </main>
-        <Footer />
+        <Footer role={role} />
       </div>
     </div>
   );

@@ -123,7 +123,7 @@ export default async function FechamentoPage() {
             </div>
           </section>
         </main>
-        <Footer />
+        <Footer role="OWNER" />
       </div>
     </div>
   );

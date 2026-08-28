@@ -43,7 +43,7 @@ export default async function ComissoesPage() {
             ))}
           </div>
         </main>
-        <Footer />
+        <Footer role="OWNER" />
       </div>
     </div>
   );

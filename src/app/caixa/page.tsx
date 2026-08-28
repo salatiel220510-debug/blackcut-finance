@@ -5,6 +5,8 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import SeletorData from "@/components/SeletorData";
 import ListaTransacoesDia, { TransacaoView } from "@/components/ListaTransacoesDia";
+import BotaoFecharBarbearia from "@/components/BotaoFecharBarbearia";
+import { agruparPorComanda } from "@/lib/agruparTransacoes";
 import { limitesDoDiaEspecifico, hojeBrasilString } from "@/lib/datasBrasil";
 
 export default async function CaixaPage({ searchParams }: { searchParams: Promise<{ data?: string }> }) {
@@ -22,11 +24,10 @@ export default async function CaixaPage({ searchParams }: { searchParams: Promis
   const [entradasAgg, saidasAgg, comissoesAgg, settings, transacoesDoDia] = await Promise.all([
     prisma.transaction.aggregate({ where: { type: "INCOME", deletedAt: null }, _sum: { amount: true } }),
     prisma.transaction.aggregate({ where: { type: "EXPENSE", deletedAt: null }, _sum: { amount: true } }),
-   prisma.transaction.aggregate({
-  where: { type: "INCOME", deletedAt: null, commissionAmount: { not: null }, commissionSettled: false },
-  _sum: { commissionAmount: true },
-})
-  ,
+    prisma.transaction.aggregate({
+      where: { type: "INCOME", deletedAt: null, commissionAmount: { not: null }, commissionSettled: false },
+      _sum: { commissionAmount: true },
+    }),
     prisma.settings.findUnique({ where: { id: 1 } }),
     prisma.transaction.findMany({
       where: { deletedAt: null, date: { gte: inicio, lte: fim } },
@@ -59,23 +60,15 @@ export default async function CaixaPage({ searchParams }: { searchParams: Promis
   });
 
   const transacoesView = transacoesDoDia.map(paraView);
-  const servicosDoDia = transacoesView.filter((t) => t.type === "INCOME");
-  const gastosDoDia = transacoesView.filter((t) => t.type === "EXPENSE");
+  const servicosDoDiaRaw = transacoesView.filter((t) => t.type === "INCOME");
+  const gastosDoDiaRaw = transacoesView.filter((t) => t.type === "EXPENSE");
 
-  const comandaIds = [...new Set(transacoesView.filter((t) => t.comandaId).map((t) => t.comandaId as string))];
-  const itensComandas = comandaIds.length
-    ? await prisma.transaction.findMany({
-        where: { comandaId: { in: comandaIds }, deletedAt: null },
-        include: { barber: { select: { name: true } }, createdBy: { select: { name: true } } },
-      })
-    : [];
+  const servicosAgrupados = agruparPorComanda(servicosDoDiaRaw);
+  const gastosAgrupados = agruparPorComanda(gastosDoDiaRaw);
 
-  const itensPorComanda: Record<string, TransacaoView[]> = {};
-  for (const item of itensComandas.map(paraView)) {
-    if (!item.comandaId) continue;
-    if (!itensPorComanda[item.comandaId]) itensPorComanda[item.comandaId] = [];
-    itensPorComanda[item.comandaId].push(item);
-  }
+  const totalEntradasDia = servicosDoDiaRaw.reduce((s, t) => s + t.amount, 0);
+  const totalSaidasDia = gastosDoDiaRaw.reduce((s, t) => s + t.amount, 0);
+  const totalComissoesDia = servicosDoDiaRaw.reduce((s, t) => s + (t.commissionAmount ?? 0), 0);
 
   const formatar = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
@@ -90,7 +83,7 @@ export default async function CaixaPage({ searchParams }: { searchParams: Promis
             <Card titulo="Entradas (total)" valor={formatar(totalEntradas)} />
             <Card titulo="Saídas (total)" valor={formatar(totalSaidas)} />
             <Card titulo="Saldo" valor={formatar(saldo)} destaque={saldo >= 0} negativo={saldo < 0} />
-            <Card titulo="Comissões" valor={formatar(totalComissoes)} />
+            <Card titulo="Comissões pendentes" valor={formatar(totalComissoes)} />
           </div>
 
           <div className="border border-gold-dark/40 bg-black-soft rounded-xl p-4 mb-8">
@@ -111,12 +104,22 @@ export default async function CaixaPage({ searchParams }: { searchParams: Promis
 
           <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
             <h2 className="font-display text-lg text-gold">Lançamentos do dia</h2>
-            <SeletorData dataAtual={dataSelecionada} />
+            <div className="flex items-center gap-2 flex-wrap">
+              <SeletorData dataAtual={dataSelecionada} />
+              <BotaoFecharBarbearia
+                data={dataSelecionada}
+                totalEntradas={totalEntradasDia}
+                totalSaidas={totalSaidasDia}
+                totalComissoes={totalComissoesDia}
+                servicos={servicosDoDiaRaw.map((s) => ({ category: s.category, amount: s.amount, barberNome: s.barberNome }))}
+                gastos={gastosDoDiaRaw.map((g) => ({ category: g.category, amount: g.amount }))}
+              />
+            </div>
           </div>
 
-          <ListaTransacoesDia servicos={servicosDoDia} gastos={gastosDoDia} itensPorComanda={itensPorComanda} />
+          <ListaTransacoesDia servicos={servicosAgrupados} gastos={gastosAgrupados} />
         </main>
-        <Footer />
+        <Footer role={role} />
       </div>
     </div>
   );

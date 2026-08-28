@@ -111,7 +111,7 @@ export default async function PerfilPage() {
             <FormSenha />
           </section>
         </main>
-        <Footer />
+        <Footer role={role} />
       </div>
     </div>
   );

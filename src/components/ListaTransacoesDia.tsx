@@ -1,6 +1,7 @@
 "use client";
 import { useState } from "react";
 import BotaoExcluirTransacao from "@/components/BotaoExcluirTransacao";
+import type { ItemExibicao } from "@/lib/agruparTransacoes";
 
 export type TransacaoView = {
   id: string;
@@ -29,16 +30,8 @@ function formatar(v: number) {
   return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 }
 
-export default function ListaTransacoesDia({
-  servicos,
-  gastos,
-  itensPorComanda,
-}: {
-  servicos: TransacaoView[];
-  gastos: TransacaoView[];
-  itensPorComanda: Record<string, TransacaoView[]>;
-}) {
-  const [selecionado, setSelecionado] = useState<TransacaoView | null>(null);
+export default function ListaTransacoesDia({ servicos, gastos }: { servicos: ItemExibicao[]; gastos: ItemExibicao[] }) {
+  const [selecionado, setSelecionado] = useState<ItemExibicao | null>(null);
 
   return (
     <>
@@ -49,18 +42,23 @@ export default function ListaTransacoesDia({
           </h3>
           {servicos.length === 0 && <p className="text-gray-500 text-sm">Nenhum serviço nesse dia.</p>}
           <div className="flex flex-col gap-2">
-            {servicos.map((t) => (
+            {servicos.map((item) => (
               <button
-                key={t.id}
-                onClick={() => setSelecionado(t)}
+                key={item.chave}
+                onClick={() => setSelecionado(item)}
                 className="text-left border border-gold-dark/30 bg-black-soft rounded-lg p-3 hover:border-gold transition-colors"
               >
                 <div className="flex justify-between items-start gap-2">
                   <div className="min-w-0">
-                    <p className="text-white font-semibold truncate">{t.category}</p>
-                    {t.barberNome && <p className="text-gray-400 text-xs">{t.barberNome}</p>}
+                    <p className="text-white font-semibold truncate">
+                      {item.category}
+                      {item.ehComanda && (
+                        <span className="ml-1.5 text-[10px] bg-gold/20 text-gold px-1.5 py-0.5 rounded-full">comanda</span>
+                      )}
+                    </p>
+                    {item.barberNome && <p className="text-gray-400 text-xs">{item.barberNome}</p>}
                   </div>
-                  <span className="text-white font-bold shrink-0">{formatar(t.amount)}</span>
+                  <span className="text-white font-bold shrink-0">{formatar(item.amount)}</span>
                 </div>
               </button>
             ))}
@@ -72,15 +70,15 @@ export default function ListaTransacoesDia({
           </h3>
           {gastos.length === 0 && <p className="text-gray-500 text-sm">Nenhum gasto nesse dia.</p>}
           <div className="flex flex-col gap-2">
-            {gastos.map((t) => (
+            {gastos.map((item) => (
               <button
-                key={t.id}
-                onClick={() => setSelecionado(t)}
+                key={item.chave}
+                onClick={() => setSelecionado(item)}
                 className="text-left border border-gold-dark/30 bg-black-soft rounded-lg p-3 hover:border-gold transition-colors"
               >
                 <div className="flex justify-between items-start gap-2">
-                  <p className="text-white font-semibold truncate">{t.category}</p>
-                  <span className="text-white font-bold shrink-0">{formatar(t.amount)}</span>
+                  <p className="text-white font-semibold truncate">{item.category}</p>
+                  <span className="text-white font-bold shrink-0">{formatar(item.amount)}</span>
                 </div>
               </button>
             ))}
@@ -99,38 +97,53 @@ export default function ListaTransacoesDia({
               <button onClick={() => setSelecionado(null)} className="text-gray-400 text-xl leading-none">×</button>
             </div>
 
-            <div className="flex flex-col gap-2 text-sm mb-4">
-              <Linha label="Tipo" valor={selecionado.type === "INCOME" ? "Entrada" : "Saída"} />
-              <Linha label="Valor" valor={formatar(selecionado.amount)} destaque />
-              <Linha label="Data" valor={new Date(selecionado.date).toLocaleString("pt-BR")} />
-              {selecionado.barberNome && <Linha label="Barbeiro" valor={selecionado.barberNome} />}
-              {selecionado.commissionAmount != null && <Linha label="Comissão" valor={formatar(selecionado.commissionAmount)} />}
-              {selecionado.clienteNome && <Linha label="Cliente" valor={selecionado.clienteNome} />}
-              {selecionado.paymentMethod && <Linha label="Pagamento" valor={PAGAMENTO_LABEL[selecionado.paymentMethod] ?? selecionado.paymentMethod} />}
-              {selecionado.description && <Linha label="Descrição" valor={selecionado.description} />}
-              <Linha label="Lançado por" valor={selecionado.criadoPorNome} />
-            </div>
-
-            {selecionado.comandaId && (itensPorComanda[selecionado.comandaId]?.length ?? 0) > 1 && (
-              <div className="border-t border-gold-dark/20 pt-3 mb-4">
-                <p className="text-gold text-xs font-semibold mb-2">Outros itens dessa comanda:</p>
-                <div className="flex flex-col gap-1">
-                  {itensPorComanda[selecionado.comandaId]
-                    .filter((i) => i.id !== selecionado.id)
-                    .map((i) => (
-                      <div key={i.id} className="flex justify-between text-xs text-gray-300">
-                        <span>{i.category}</span>
-                        <span>{formatar(i.amount)}</span>
+            {selecionado.ehComanda ? (
+              <>
+                <div className="flex flex-col gap-2 text-sm mb-4">
+                  <Linha label="Total" valor={formatar(selecionado.amount)} destaque />
+                  <Linha label="Data" valor={new Date(selecionado.date).toLocaleString("pt-BR")} />
+                  {selecionado.barberNome && <Linha label="Barbeiro" valor={selecionado.barberNome} />}
+                  {selecionado.itens[0]?.clienteNome && <Linha label="Cliente" valor={selecionado.itens[0].clienteNome!} />}
+                  {selecionado.itens[0]?.paymentMethod && (
+                    <Linha label="Pagamento" valor={PAGAMENTO_LABEL[selecionado.itens[0].paymentMethod!] ?? selecionado.itens[0].paymentMethod!} />
+                  )}
+                </div>
+                <div className="border-t border-gold-dark/20 pt-3">
+                  <p className="text-gold text-xs font-semibold mb-2">Itens da comanda ({selecionado.itens.length}):</p>
+                  <div className="flex flex-col gap-2">
+                    {selecionado.itens.map((i) => (
+                      <div key={i.id} className="flex items-center justify-between bg-black-deep border border-gold-dark/10 rounded-lg px-3 py-2">
+                        <span className="text-gray-200 text-sm">{i.category} — {formatar(i.amount)}</span>
+                        {i.podeExcluir && <BotaoExcluirTransacao id={i.id} onSucesso={() => setSelecionado(null)} />}
                       </div>
                     ))}
+                  </div>
                 </div>
-              </div>
-            )}
+              </>
+            ) : (
+              <>
+                <div className="flex flex-col gap-2 text-sm mb-4">
+                  <Linha label="Tipo" valor={selecionado.itens[0].type === "INCOME" ? "Entrada" : "Saída"} />
+                  <Linha label="Valor" valor={formatar(selecionado.amount)} destaque />
+                  <Linha label="Data" valor={new Date(selecionado.date).toLocaleString("pt-BR")} />
+                  {selecionado.barberNome && <Linha label="Barbeiro" valor={selecionado.barberNome} />}
+                  {selecionado.itens[0].commissionAmount != null && (
+                    <Linha label="Comissão" valor={formatar(selecionado.itens[0].commissionAmount)} />
+                  )}
+                  {selecionado.itens[0].clienteNome && <Linha label="Cliente" valor={selecionado.itens[0].clienteNome} />}
+                  {selecionado.itens[0].paymentMethod && (
+                    <Linha label="Pagamento" valor={PAGAMENTO_LABEL[selecionado.itens[0].paymentMethod] ?? selecionado.itens[0].paymentMethod} />
+                  )}
+                  {selecionado.itens[0].description && <Linha label="Descrição" valor={selecionado.itens[0].description} />}
+                  <Linha label="Lançado por" valor={selecionado.itens[0].criadoPorNome} />
+                </div>
 
-            {selecionado.podeExcluir && (
-              <div className="border-t border-gold-dark/20 pt-3">
-                <BotaoExcluirTransacao id={selecionado.id} onSucesso={() => setSelecionado(null)} />
-              </div>
+                {selecionado.itens[0].podeExcluir && (
+                  <div className="border-t border-gold-dark/20 pt-3">
+                    <BotaoExcluirTransacao id={selecionado.itens[0].id} onSucesso={() => setSelecionado(null)} />
+                  </div>
+                )}
+              </>
             )}
           </div>
         </div>

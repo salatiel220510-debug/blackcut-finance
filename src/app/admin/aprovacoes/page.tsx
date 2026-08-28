@@ -46,7 +46,7 @@ export default async function AprovacoesPage() {
             ))}
           </div>
         </main>
-        <Footer />
+        <Footer role="OWNER" />
       </div>
     </div>
   );

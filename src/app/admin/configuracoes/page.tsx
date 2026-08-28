@@ -50,7 +50,7 @@ export default async function ConfiguracoesPage() {
             }))}
           />
         </main>
-        <Footer />
+        <Footer role="OWNER" />
       </div>
     </div>
   );
