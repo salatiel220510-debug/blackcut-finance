@@ -1,7 +1,6 @@
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
-import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import SeletorData from "@/components/SeletorData";
 import ListaTransacoesDia, { TransacaoView } from "@/components/ListaTransacoesDia";
@@ -15,7 +14,6 @@ export default async function CaixaPage({ searchParams }: { searchParams: Promis
 
   const role = (session.user as any).role;
   const userId = (session.user as any).id;
-  const nome = session.user?.name ?? "";
 
   const params = await searchParams;
   const dataSelecionada = params.data || hojeBrasilString();
@@ -73,54 +71,51 @@ export default async function CaixaPage({ searchParams }: { searchParams: Promis
   const formatar = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
   return (
-    <div className="min-h-screen flex flex-row">
-      <Navbar role={role} nome={nome} />
-      <div className="flex-1 flex flex-col">
-        <main className="flex-1 max-w-4xl w-full mx-auto px-4 py-8">
-          <h1 className="font-display text-2xl text-gold mb-6">Fluxo de Caixa</h1>
+    <div className="min-h-screen flex flex-col">
+      <main className="flex-1 max-w-4xl w-full mx-auto px-4 py-8">
+        <h1 className="font-display text-2xl text-gold mb-6">Fluxo de Caixa</h1>
 
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
-            <Card titulo="Entradas (total)" valor={formatar(totalEntradas)} />
-            <Card titulo="Saídas (total)" valor={formatar(totalSaidas)} />
-            <Card titulo="Saldo" valor={formatar(saldo)} destaque={saldo >= 0} negativo={saldo < 0} />
-            <Card titulo="Comissões pendentes" valor={formatar(totalComissoes)} />
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
+          <Card titulo="Entradas (total)" valor={formatar(totalEntradas)} />
+          <Card titulo="Saídas (total)" valor={formatar(totalSaidas)} />
+          <Card titulo="Saldo" valor={formatar(saldo)} destaque={saldo >= 0} negativo={saldo < 0} />
+          <Card titulo="Comissões pendentes" valor={formatar(totalComissoes)} />
+        </div>
+
+        <div className="border border-gold-dark/40 bg-black-soft rounded-xl p-4 mb-8">
+          <h2 className="font-display text-lg text-gold mb-3">Fundos da Barbearia</h2>
+          <table className="w-full text-sm">
+            <tbody>
+              <tr className="border-b border-gold-dark/20">
+                <td className="py-2 text-gray-400">Fundos acumulados (calculado)</td>
+                <td className="py-2 text-right font-bold text-gold">{formatar(fundosAcumulados)}</td>
+              </tr>
+              <tr>
+                <td className="py-2 text-gray-400">Saldo bancário informado</td>
+                <td className="py-2 text-right font-bold text-white">{formatar(saldoBancario)}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
+          <h2 className="font-display text-lg text-gold">Lançamentos do dia</h2>
+          <div className="flex items-center gap-2 flex-wrap">
+            <SeletorData dataAtual={dataSelecionada} />
+            <BotaoFecharBarbearia
+              data={dataSelecionada}
+              totalEntradas={totalEntradasDia}
+              totalSaidas={totalSaidasDia}
+              totalComissoes={totalComissoesDia}
+              servicos={servicosDoDiaRaw.map((s) => ({ category: s.category, amount: s.amount, barberNome: s.barberNome }))}
+              gastos={gastosDoDiaRaw.map((g) => ({ category: g.category, amount: g.amount }))}
+            />
           </div>
+        </div>
 
-          <div className="border border-gold-dark/40 bg-black-soft rounded-xl p-4 mb-8">
-            <h2 className="font-display text-lg text-gold mb-3">Fundos da Barbearia</h2>
-            <table className="w-full text-sm">
-              <tbody>
-                <tr className="border-b border-gold-dark/20">
-                  <td className="py-2 text-gray-400">Fundos acumulados (calculado)</td>
-                  <td className="py-2 text-right font-bold text-gold">{formatar(fundosAcumulados)}</td>
-                </tr>
-                <tr>
-                  <td className="py-2 text-gray-400">Saldo bancário informado</td>
-                  <td className="py-2 text-right font-bold text-white">{formatar(saldoBancario)}</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-
-          <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
-            <h2 className="font-display text-lg text-gold">Lançamentos do dia</h2>
-            <div className="flex items-center gap-2 flex-wrap">
-              <SeletorData dataAtual={dataSelecionada} />
-              <BotaoFecharBarbearia
-                data={dataSelecionada}
-                totalEntradas={totalEntradasDia}
-                totalSaidas={totalSaidasDia}
-                totalComissoes={totalComissoesDia}
-                servicos={servicosDoDiaRaw.map((s) => ({ category: s.category, amount: s.amount, barberNome: s.barberNome }))}
-                gastos={gastosDoDiaRaw.map((g) => ({ category: g.category, amount: g.amount }))}
-              />
-            </div>
-          </div>
-
-          <ListaTransacoesDia servicos={servicosAgrupados} gastos={gastosAgrupados} />
-        </main>
-        <Footer role={role} />
-      </div>
+        <ListaTransacoesDia servicos={servicosAgrupados} gastos={gastosAgrupados} />
+      </main>
+      <Footer role={role} />
     </div>
   );
 }

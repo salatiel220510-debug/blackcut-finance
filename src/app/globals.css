@@ -1,32 +1,30 @@
 @import "tailwindcss";
 
 @theme {
-  /* valores padrão = modo noite (paleta roxa) */
-  --color-gold: #AAAAFF;
-  --color-gold-light: #FAF9F8;
-  --color-gold-dark: #623B70;
-  --color-black-deep: #150811;
-  --color-black-soft: #531745;
-  --color-white: #FAF9F8;
-  --color-gray-300: #cfc3da;
-  --color-gray-400: #b8a8c4;
-  --color-gray-500: #9483a3;
+  --color-gold: #C41E3A;
+  --color-gold-light: #E8394F;
+  --color-gold-dark: #5C0912;
+  --color-black-deep: #0B0B0B;
+  --color-black-soft: #1C0D0F;
+  --color-white: #F5F2ED;
+  --color-gray-300: #D4C9C5;
+  --color-gray-400: #A89792;
+  --color-gray-500: #7D6D69;
 
   --font-display: var(--font-cinzel);
   --font-body: var(--font-inter);
 }
 
-/* modo dia (paleta creme/terracota) — sobrescreve os mesmos tokens */
 [data-theme="day"] {
-  --color-gold: #CB6F4A;
-  --color-gold-light: #EB975E;
-  --color-gold-dark: #AB4F41;
-  --color-black-deep: #FAF7EB;
-  --color-black-soft: #EECB88;
-  --color-white: #5D1F1E;
-  --color-gray-300: #a6826a;
-  --color-gray-400: #8a6a52;
-  --color-gray-500: #6b4f3c;
+  --color-gold: #C41E3A;
+  --color-gold-light: #E8394F;
+  --color-gold-dark: #5C0912;
+  --color-black-deep: #0B0B0B;
+  --color-black-soft: #1C0D0F;
+  --color-white: #F5F2ED;
+  --color-gray-300: #D4C9C5;
+  --color-gray-400: #A89792;
+  --color-gray-500: #7D6D69;
 }
 
 @keyframes tesoura-lamina-a {
@@ -38,8 +36,8 @@
   50% { transform: rotate(-8deg); }
 }
 @keyframes brilho-dourado {
-  0%, 100% { text-shadow: 0 0 6px rgba(212,175,55,0.4), 0 0 12px rgba(212,175,55,0.2); }
-  50% { text-shadow: 0 0 16px rgba(212,175,55,0.9), 0 0 32px rgba(212,175,55,0.5); }
+  0%, 100% { text-shadow: 0 0 6px rgba(196,30,58,0.4), 0 0 12px rgba(196,30,58,0.2); }
+  50% { text-shadow: 0 0 16px rgba(196,30,58,0.9), 0 0 32px rgba(196,30,58,0.5); }
 }
 @keyframes pulso-suave {
   0%, 100% { opacity: 0.5; }

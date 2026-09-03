@@ -15,3 +15,11 @@ export async function totalComissaoPendente() {
   });
   return Number(agg._sum.commissionAmount ?? 0);
 }
+
+export async function totalRecebidoBarbeiro(barberId: string) {
+  const agg = await prisma.commissionSettlement.aggregate({
+    where: { barberId },
+    _sum: { valorPago: true },
+  });
+  return Number(agg._sum.valorPago ?? 0);
+}
