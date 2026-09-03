@@ -3,6 +3,7 @@ import { Cinzel, Inter } from "next/font/google";
 import { headers } from "next/headers";
 import "./globals.css";
 import RegistrarServiceWorker from "@/components/RegistrarServiceWorker";
+import RelogioCircular from "@/components/RelogioCircular";
 
 const cinzel = Cinzel({
   variable: "--font-cinzel",
@@ -49,6 +50,7 @@ export default async function RootLayout({
       <body className="min-h-full flex flex-col bg-black-deep text-white font-body">
         <script nonce={nonce} suppressHydrationWarning dangerouslySetInnerHTML={{ __html: SCRIPT_TEMA }} />
         <RegistrarServiceWorker />
+        <RelogioCircular />
         {children}
       </body>
     </html>

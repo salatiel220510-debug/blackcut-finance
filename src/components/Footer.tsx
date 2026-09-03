@@ -3,7 +3,6 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
 import { APP_VERSION } from "@/lib/version";
-import Relogio from "./Relogio";
 
 type ItemMenu = { href: string; label: string; icone: React.ReactNode };
 
@@ -65,23 +64,12 @@ export default function Footer({ role }: { role?: string }) {
             {links.map((item) => {
               const ativo = pathname === item.href;
               return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  title={item.label}
-                  className="group flex flex-col items-center gap-1"
-                >
+                <Link key={item.href} href={item.href} title={item.label} className="group flex flex-col items-center gap-1">
                   <span
                     className={`flex items-center justify-center w-12 h-12 rounded-full border transition-all ${
-                      ativo
-                        ? "border-gold bg-gold/15 text-gold"
-                        : "border-gold-dark/40 text-gold-dark group-hover:text-gold group-hover:border-gold"
+                      ativo ? "border-gold bg-gold/15 text-gold" : "border-gold-dark/40 text-gold-dark group-hover:text-gold group-hover:border-gold"
                     }`}
-                    style={{
-                      filter: ativo
-                        ? "drop-shadow(0 0 6px rgba(196,30,58,0.8))"
-                        : "drop-shadow(0 0 2px rgba(196,30,58,0.3))",
-                    }}
+                    style={{ filter: ativo ? "drop-shadow(0 0 6px rgba(196,30,58,0.8))" : "drop-shadow(0 0 2px rgba(196,30,58,0.3))" }}
                   >
                     {item.icone}
                   </span>
@@ -90,11 +78,7 @@ export default function Footer({ role }: { role?: string }) {
               );
             })}
 
-            <button
-              onClick={() => signOut({ callbackUrl: "/login" })}
-              title="Sair"
-              className="group flex flex-col items-center gap-1"
-            >
+            <button onClick={() => signOut({ callbackUrl: "/login" })} title="Sair" className="group flex flex-col items-center gap-1">
               <span
                 className="flex items-center justify-center w-12 h-12 rounded-full border border-red-900/50 text-red-500 group-hover:border-red-500 transition-all"
                 style={{ filter: "drop-shadow(0 0 3px rgba(239,68,68,0.4))" }}
@@ -107,7 +91,6 @@ export default function Footer({ role }: { role?: string }) {
         )}
 
         <div className="flex flex-col items-center gap-1 pt-3 border-t border-gold-dark/10">
-          <Relogio />
           <p className="text-xs text-gray-500">BlackCut Finance — Versão {APP_VERSION}</p>
           <p className="text-xs text-gray-500">
             Powered by <span className="text-gold-dark">Alpha Órbita Labs</span>. Todos os direitos reservados.
