@@ -5,8 +5,9 @@ import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import GraficoLinhaCaixa from "@/components/GraficoLinhaCaixa";
-import GraficoBarraBarbeiros from "@/components/GraficoBarraBarbeiros";
-import { serieUltimosDias, faturamentoPorBarbeiro } from "@/lib/dashboardData";
+import GraficoComparacaoGastosServicos from "@/components/GraficoComparacaoGastosServicos";
+import { serieUltimosDias } from "@/lib/dashboardData";
+import { evolucaoUltimosMeses } from "@/lib/dashboardFinanceiro";
 
 export default async function HomePage() {
   const session = await auth();
@@ -48,7 +49,7 @@ export default async function HomePage() {
           </div>
 
           <div className="flex flex-wrap gap-3">
-            <BotaoGrande href="/caixa/novo" label="Registrar Serviço" />
+            <BotaoGrande href="/caixa/comanda/nova" label="Registrar Serviço" />
             <BotaoGrande href="/caixa" label="Ver Fluxo de Caixa" />
           </div>
         </main>
@@ -57,7 +58,7 @@ export default async function HomePage() {
     );
   }
 
-  const [entradasAgg, saidasAgg, comissoesAgg, pendentesCount, serie, rankingBarbeiros] = await Promise.all([
+  const [entradasAgg, saidasAgg, comissoesAgg, pendentesCount, serie, evolucaoMeses] = await Promise.all([
     prisma.transaction.aggregate({ where: { type: "INCOME", deletedAt: null }, _sum: { amount: true } }),
     prisma.transaction.aggregate({ where: { type: "EXPENSE", deletedAt: null }, _sum: { amount: true } }),
     prisma.transaction.aggregate({
@@ -66,7 +67,7 @@ export default async function HomePage() {
     }),
     prisma.user.count({ where: { status: "PENDING" } }),
     serieUltimosDias(14),
-    faturamentoPorBarbeiro(30),
+    evolucaoUltimosMeses(6),
   ]);
 
   const totalEntradas = Number(entradasAgg._sum.amount ?? 0);
@@ -102,15 +103,15 @@ export default async function HomePage() {
           <GraficoLinhaCaixa dados={serie} />
         </div>
 
-        {rankingBarbeiros.length > 0 && (
-          <div className="border border-gold-dark/40 bg-black-soft rounded-xl p-4 mb-10">
-            <h2 className="font-display text-lg text-gold mb-3">Faturamento por barbeiro (últimos 30 dias)</h2>
-            <GraficoBarraBarbeiros dados={rankingBarbeiros} />
-          </div>
-        )}
+        <div className="border border-gold-dark/40 bg-black-soft rounded-xl p-4 mb-10">
+          <h2 className="font-display text-lg text-gold mb-3">Serviços x Gastos (últimos 6 meses)</h2>
+          <GraficoComparacaoGastosServicos
+            dados={evolucaoMeses.map((e) => ({ mes: e.mes, servicos: e.faturamento, gastos: e.despesas }))}
+          />
+        </div>
 
         <div className="flex flex-wrap gap-3">
-          <BotaoGrande href="/caixa/novo" label="Novo Lançamento" />
+          <BotaoGrande href="/caixa/comanda/nova" label="Novo Lançamento" />
           <BotaoGrande href="/caixa" label="Ver Fluxo de Caixa" />
           <BotaoGrande href="/admin/configuracoes" label="Preços & Comissão" />
         </div>

@@ -14,6 +14,7 @@ import {
   atualizarBudgetCategoria,
   desativarCategoriaDespesa,
 } from "./actions";
+import SeletorDataPopover from "@/components/SeletorDataPopover";
 
 type Servico = {
   id: string;
@@ -243,6 +244,7 @@ function CategoriaLinha({ categoria }: { categoria: Categoria }) {
 
 function ServicoLinha({ servico }: { servico: Servico }) {
   const [mostrarDesconto, setMostrarDesconto] = useState(false);
+  const [dataValidade, setDataValidade] = useState("");
   const descontoAtivo =
     servico.discountPercentage != null &&
     (!servico.discountValidUntil || new Date(servico.discountValidUntil) >= new Date());
@@ -293,7 +295,8 @@ function ServicoLinha({ servico }: { servico: Servico }) {
           }}
         >
           <input name="discountPercentage" type="number" step="0.01" min="1" max="100" placeholder="% de desconto" required className={inputClass} />
-          <input name="discountValidUntil" type="date" className={inputClass} />
+          <input type="hidden" name="discountValidUntil" value={dataValidade} />
+          <SeletorDataPopover valor={dataValidade} onChange={setDataValidade} placeholder="Válido até (opcional)" />
           <button type="submit" className="bg-gold text-black-deep font-semibold rounded-lg px-4 hover:bg-gold-light transition-colors whitespace-nowrap">
             Aplicar
           </button>
