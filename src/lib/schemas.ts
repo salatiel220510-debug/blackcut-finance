@@ -112,8 +112,10 @@ export const comandaSchema = z.object({
   itens: z
     .array(
       z.object({
+        tipo: z.enum(["INCOME", "EXPENSE"]),
         category: z.string().trim().min(1, "Informe a categoria do item."),
         amount: z.number().positive("O valor do item precisa ser maior que zero."),
+        expenseCategoryId: z.string().trim().optional(),
       })
     )
     .min(1, "Adicione pelo menos um item à comanda."),

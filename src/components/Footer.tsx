@@ -40,7 +40,6 @@ function IconeSair() {
 const LINKS_COMUNS: ItemMenu[] = [
   { href: "/home", label: "Início", icone: <IconeHome /> },
   { href: "/caixa", label: "Caixa", icone: <IconeCaixa /> },
-  { href: "/caixa/novo", label: "Novo", icone: <IconeNovo /> },
   { href: "/caixa/comanda/nova", label: "Comanda", icone: <IconeComanda /> },
   { href: "/perfil", label: "Perfil", icone: <IconePerfil /> },
 ];

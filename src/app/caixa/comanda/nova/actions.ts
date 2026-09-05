@@ -5,6 +5,7 @@ import { auth } from "@/auth";
 import { revalidatePath } from "next/cache";
 import { after } from "next/server";
 import { enviarPushParaDonos } from "@/lib/push";
+import { verificarAlertaOrcamento } from "@/lib/alertasOrcamento";
 import { comandaSchema } from "@/lib/schemas";
 
 export async function registrarComanda(dadosBrutos: unknown) {
@@ -21,32 +22,53 @@ export async function registrarComanda(dadosBrutos: unknown) {
 
   const { barberId: barberIdForm, paymentMethod, clienteNome, itens } = validacao.data;
 
-  let barberId: string;
-  if (role === "BARBER") {
-    barberId = userId;
-  } else {
-    if (!barberIdForm) return { erro: "Selecione o barbeiro responsável." };
-    barberId = barberIdForm;
+  const temItemIncome = itens.some((i) => i.tipo === "INCOME");
+  const temItemExpense = itens.some((i) => i.tipo === "EXPENSE");
+
+  if (role === "BARBER" && temItemExpense) {
+    return { erro: "Barbeiros só podem registrar serviços, não despesas." };
   }
 
-  const settings = await prisma.settings.findUnique({ where: { id: 1 } });
+  let barberId: string | null = null;
+  if (temItemIncome) {
+    if (role === "BARBER") {
+      barberId = userId;
+    } else {
+      if (!barberIdForm) return { erro: "Selecione o barbeiro responsável pelos serviços." };
+      barberId = barberIdForm;
+    }
+  }
+
+  const settings = temItemIncome ? await prisma.settings.findUnique({ where: { id: 1 } }) : null;
   const percentual = settings ? Number(settings.commissionPercentage) : 40;
 
   const comandaId = crypto.randomUUID();
 
   await prisma.transaction.createMany({
-    data: itens.map((item) => ({
-      type: "INCOME" as const,
-      category: item.category,
-      amount: item.amount,
-      barberId,
-      commissionPercentage: percentual,
-      commissionAmount: Number((item.amount * (percentual / 100)).toFixed(2)),
-      comandaId,
-      paymentMethod,
-      clienteNome: clienteNome || null,
-      createdById: userId,
-    })),
+    data: itens.map((item) =>
+      item.tipo === "INCOME"
+        ? {
+            type: "INCOME" as const,
+            category: item.category,
+            amount: item.amount,
+            barberId,
+            commissionPercentage: percentual,
+            commissionAmount: Number((item.amount * (percentual / 100)).toFixed(2)),
+            comandaId,
+            paymentMethod,
+            clienteNome: clienteNome || null,
+            createdById: userId,
+          }
+        : {
+            type: "EXPENSE" as const,
+            category: item.category,
+            amount: item.amount,
+            expenseCategoryId: item.expenseCategoryId || null,
+            comandaId,
+            paymentMethod,
+            createdById: userId,
+          }
+    ),
   });
 
   const total = itens.reduce((s, i) => s + i.amount, 0);
@@ -59,6 +81,17 @@ export async function registrarComanda(dadosBrutos: unknown) {
         title: "Nova comanda registrada",
         body: `${nomeUsuario} fechou uma comanda de ${itens.length} item(ns) — ${formatar(total)}`,
       }).catch((e) => console.error("[push] erro ao notificar:", e));
+    });
+  }
+
+  if (temItemExpense) {
+    const categoriasAfetadas = [
+      ...new Set(itens.filter((i) => i.tipo === "EXPENSE" && i.expenseCategoryId).map((i) => i.expenseCategoryId as string)),
+    ];
+    after(async () => {
+      for (const catId of categoriasAfetadas) {
+        await verificarAlertaOrcamento(catId).catch((e) => console.error("[alerta-orcamento] erro:", e));
+      }
     });
   }
 

@@ -23,6 +23,10 @@ export default async function NovaComandaPage() {
     orderBy: { name: "asc" },
   });
 
+  const categoriasDespesa = role === "OWNER"
+    ? await prisma.expenseCategory.findMany({ where: { active: true }, orderBy: { name: "asc" } })
+    : [];
+
   const agora = new Date();
   const servicos = servicosRaw.map((s) => {
     const precoOriginal = s.price ? Number(s.price) : null;
@@ -46,7 +50,12 @@ export default async function NovaComandaPage() {
     <div className="min-h-screen flex flex-col">
       <main className="flex-1 max-w-md w-full mx-auto px-4 py-8">
         <h1 className="font-display text-2xl text-gold mb-6">Nova Comanda</h1>
-        <FormComanda role={role} barbeiros={barbeiros} servicos={servicos} />
+        <FormComanda
+          role={role}
+          barbeiros={barbeiros}
+          servicos={servicos}
+          categoriasDespesa={categoriasDespesa.map((c) => ({ id: c.id, name: c.name }))}
+        />
       </main>
       <Footer role={role} />
     </div>
