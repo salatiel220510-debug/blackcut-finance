@@ -8,6 +8,7 @@ import GraficoLinhaCaixa from "@/components/GraficoLinhaCaixa";
 import GraficoComparacaoGastosServicos from "@/components/GraficoComparacaoGastosServicos";
 import { serieUltimosDias } from "@/lib/dashboardData";
 import { evolucaoUltimosMeses } from "@/lib/dashboardFinanceiro";
+import { calcularFechamento } from "@/lib/fechamentoMensal";
 
 export default async function HomePage() {
   const session = await auth();
@@ -58,7 +59,10 @@ export default async function HomePage() {
     );
   }
 
-  const [entradasAgg, saidasAgg, comissoesAgg, pendentesCount, serie, evolucaoMeses] = await Promise.all([
+  const agora = new Date();
+
+  const [previaMes, entradasTotalAgg, saidasTotalAgg, comissoesAgg, pendentesCount, serie, evolucaoMeses] = await Promise.all([
+    calcularFechamento(agora.getUTCFullYear(), agora.getUTCMonth()),
     prisma.transaction.aggregate({ where: { type: "INCOME", deletedAt: null }, _sum: { amount: true } }),
     prisma.transaction.aggregate({ where: { type: "EXPENSE", deletedAt: null }, _sum: { amount: true } }),
     prisma.transaction.aggregate({
@@ -70,23 +74,26 @@ export default async function HomePage() {
     evolucaoUltimosMeses(6),
   ]);
 
-  const totalEntradas = Number(entradasAgg._sum.amount ?? 0);
-  const totalSaidas = Number(saidasAgg._sum.amount ?? 0);
-  const totalComissoes = Number(comissoesAgg._sum.commissionAmount ?? 0);
-  const lucro = totalEntradas - totalSaidas - totalComissoes;
+  const entradasMes = previaMes.faturamentoBruto;
+  const saidasMes = previaMes.totalDespesas;
+  const totalComissoesPendentes = Number(comissoesAgg._sum.commissionAmount ?? 0);
+
+  const totalEntradasGeral = Number(entradasTotalAgg._sum.amount ?? 0);
+  const totalSaidasGeral = Number(saidasTotalAgg._sum.amount ?? 0);
+  const fundos = totalEntradasGeral - totalSaidasGeral - totalComissoesPendentes;
 
   return (
     <div className="min-h-screen flex flex-col">
       <SplashHome />
       <main className="flex-1 max-w-4xl w-full mx-auto px-4 py-8">
         <h1 className="font-display text-2xl text-gold mb-1">Bem-vindo, {nome}</h1>
-        <p className="text-gray-400 mb-8">Visão geral do negócio.</p>
+        <p className="text-gray-400 mb-8">Visão geral do negócio — mês atual.</p>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-10">
-          <Card titulo="Entradas" valor={formatar(totalEntradas)} />
-          <Card titulo="Saídas" valor={formatar(totalSaidas)} />
-          <Card titulo="Comissões pendentes" valor={formatar(totalComissoes)} />
-          <Card titulo="Fundos da Barbearia" valor={formatar(lucro)} destaque />
+          <Card titulo="Entradas (mês)" valor={formatar(entradasMes)} />
+          <Card titulo="Saídas (mês)" valor={formatar(saidasMes)} />
+          <Card titulo="Comissões pendentes" valor={formatar(totalComissoesPendentes)} />
+          <Card titulo="Fundos da Barbearia" valor={formatar(fundos)} destaque />
         </div>
 
         {pendentesCount > 0 && (
