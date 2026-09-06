@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
-import TesouraAnimada from "./TesouraAnimada";
+import LogoBCFinanceSVG from "./LogoBCFinanceSVG";
 
 export default function SplashHome() {
   const [visivel, setVisivel] = useState(true);
@@ -19,15 +19,14 @@ export default function SplashHome() {
 
   return (
     <div
-      className={`fixed inset-0 z-50 bg-black-deep flex flex-col items-center justify-center gap-4 transition-opacity duration-500 ${
+      className={`fixed inset-0 z-50 bg-black-deep flex flex-col items-center justify-center transition-opacity duration-500 ${
         saindo ? "opacity-0 pointer-events-none" : "opacity-100"
       }`}
     >
-      <TesouraAnimada size={80} />
-      <h1 className="font-display text-3xl text-gold tracking-wide animate-brilho-dourado">
-        BlackCut Finance
-      </h1>
-      <p className="text-gray-400 text-sm animate-pulso-suave">Powered By Alpha Órbita Labs</p>
+      <div className="w-64 h-64 sm:w-80 sm:h-80">
+        <LogoBCFinanceSVG />
+      </div>
+      <p className="text-gray-500 text-xs mt-2 animate-pulso-suave">Powered By Alpha Órbita Labs</p>
     </div>
   );
 }
