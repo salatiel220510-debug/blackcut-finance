@@ -20,7 +20,7 @@ export async function registrarComanda(dadosBrutos: unknown) {
     return { erro: validacao.error.issues[0].message };
   }
 
-  const { barberId: barberIdForm, paymentMethod, clienteNome, itens } = validacao.data;
+  const { barberId: barberIdForm, paymentMethod, clienteNome, observacao, itens } = validacao.data;
 
   const temItemIncome = itens.some((i) => i.tipo === "INCOME");
   const temItemExpense = itens.some((i) => i.tipo === "EXPENSE");
@@ -57,6 +57,7 @@ export async function registrarComanda(dadosBrutos: unknown) {
             comandaId,
             paymentMethod,
             clienteNome: clienteNome || null,
+            observacao: observacao || null,
             createdById: userId,
           }
         : {
@@ -66,6 +67,7 @@ export async function registrarComanda(dadosBrutos: unknown) {
             expenseCategoryId: item.expenseCategoryId || null,
             comandaId,
             paymentMethod,
+            observacao: observacao || null,
             createdById: userId,
           }
     ),

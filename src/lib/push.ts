@@ -7,13 +7,8 @@ webpush.setVapidDetails(
   process.env.VAPID_PRIVATE_KEY!
 );
 
-export async function enviarPushParaDonos(payload: { title: string; body: string }) {
-  const donos = await prisma.user.findMany({ where: { role: "OWNER" } });
-  const donoIds = donos.map((d) => d.id);
-
-  const subscriptions = await prisma.pushSubscription.findMany({
-    where: { userId: { in: donoIds } },
-  });
+async function enviarParaSubscriptions(userIds: string[], payload: { title: string; body: string }) {
+  const subscriptions = await prisma.pushSubscription.findMany({ where: { userId: { in: userIds } } });
 
   const resultados = await Promise.allSettled(
     subscriptions.map((sub) =>
@@ -33,4 +28,14 @@ export async function enviarPushParaDonos(payload: { title: string; body: string
       }
     }
   }
+}
+
+export async function enviarPushParaDonos(payload: { title: string; body: string }) {
+  const donos = await prisma.user.findMany({ where: { role: "OWNER" } });
+  await enviarParaSubscriptions(donos.map((d) => d.id), payload);
+}
+
+export async function enviarPushParaTodosAprovados(payload: { title: string; body: string }) {
+  const usuarios = await prisma.user.findMany({ where: { status: "APPROVED" } });
+  await enviarParaSubscriptions(usuarios.map((u) => u.id), payload);
 }

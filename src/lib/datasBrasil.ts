@@ -17,3 +17,11 @@ export function hojeBrasilString() {
   const dia = String(brasil.getUTCDate()).padStart(2, "0");
   return `${ano}-${mes}-${dia}`;
 }
+export function diaBrasilDeData(data: Date): string {
+  const OFFSET_BRASIL_HORAS = 3;
+  const brasil = new Date(data.getTime() - OFFSET_BRASIL_HORAS * 60 * 60 * 1000);
+  const ano = brasil.getUTCFullYear();
+  const mes = String(brasil.getUTCMonth() + 1).padStart(2, "0");
+  const dia = String(brasil.getUTCDate()).padStart(2, "0");
+  return `${ano}-${mes}-${dia}`;
+}

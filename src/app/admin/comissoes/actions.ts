@@ -4,7 +4,13 @@ import { prisma } from "@/lib/prisma";
 import { auth } from "@/auth";
 import { revalidatePath } from "next/cache";
 import { comissaoPendenteBarbeiro } from "@/lib/comissoesPendentes";
-import { liquidarComissaoSchema } from "@/lib/schemas";
+import { z } from "zod";
+
+const liquidarComissaoSchema = z.object({
+  valorPago: z.coerce
+    .number({ error: "Informe um valor válido." })
+    .min(0.01, "O valor pago deve ser maior que zero."),
+});
 
 async function verificarDono() {
   const session = await auth();

@@ -19,7 +19,10 @@ export default async function CaixaPage({ searchParams }: { searchParams: Promis
   const dataSelecionada = params.data || hojeBrasilString();
   const { inicio, fim } = limitesDoDiaEspecifico(dataSelecionada);
 
-  const [entradasAgg, saidasAgg, comissoesAgg, settings, transacoesDoDia] = await Promise.all([
+  const [anoSel, mesSel, diaSel] = dataSelecionada.split("-").map(Number);
+  const dataChaveFechamento = new Date(Date.UTC(anoSel, mesSel - 1, diaSel));
+
+  const [entradasAgg, saidasAgg, comissoesAgg, settings, transacoesDoDia, fechamentoDoDia] = await Promise.all([
     prisma.transaction.aggregate({ where: { type: "INCOME", deletedAt: null }, _sum: { amount: true } }),
     prisma.transaction.aggregate({ where: { type: "EXPENSE", deletedAt: null }, _sum: { amount: true } }),
     prisma.transaction.aggregate({
@@ -32,7 +35,10 @@ export default async function CaixaPage({ searchParams }: { searchParams: Promis
       orderBy: { date: "desc" },
       include: { barber: { select: { name: true } }, createdBy: { select: { name: true } } },
     }),
+    prisma.dailyClosure.findUnique({ where: { data: dataChaveFechamento } }),
   ]);
+
+  const diaFechado = !!fechamentoDoDia;
 
   const totalEntradas = Number(entradasAgg._sum.amount ?? 0);
   const totalSaidas = Number(saidasAgg._sum.amount ?? 0);
@@ -46,6 +52,7 @@ export default async function CaixaPage({ searchParams }: { searchParams: Promis
     type: t.type,
     category: t.category,
     description: t.description,
+    observacao: t.observacao,
     amount: Number(t.amount),
     date: t.date.toISOString(),
     barberNome: t.barber?.name ?? null,
@@ -54,7 +61,7 @@ export default async function CaixaPage({ searchParams }: { searchParams: Promis
     clienteNome: t.clienteNome,
     comandaId: t.comandaId,
     criadoPorNome: t.createdBy.name,
-    podeExcluir: role === "OWNER" || t.createdById === userId,
+    podeExcluir: (role === "OWNER" || t.createdById === userId) && !(role === "BARBER" && diaFechado),
   });
 
   const transacoesView = transacoesDoDia.map(paraView);
@@ -112,6 +119,10 @@ export default async function CaixaPage({ searchParams }: { searchParams: Promis
             />
           </div>
         </div>
+
+        {diaFechado && (
+          <p className="text-gold text-xs mb-3 text-center">🔒 Este dia já foi fechado — barbeiros não podem mais excluir lançamentos.</p>
+        )}
 
         <ListaTransacoesDia servicos={servicosAgrupados} gastos={gastosAgrupados} />
       </main>

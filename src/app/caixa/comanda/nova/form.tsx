@@ -1,6 +1,7 @@
 "use client";
 import { useState } from "react";
 import { registrarComanda } from "./actions";
+import CartaoFidelidade from "@/components/CartaoFidelidade";
 
 type Barbeiro = { id: string; name: string };
 type Servico = { name: string; price: number | null; discountedPrice: number | null; discountPercentage: number | null };
@@ -35,6 +36,7 @@ export default function FormComanda({
   const [barberId, setBarberId] = useState("");
   const [paymentMethod, setPaymentMethod] = useState<typeof METODOS_PAGAMENTO[number]["valor"]>("DINHEIRO");
   const [clienteNome, setClienteNome] = useState("");
+  const [observacao, setObservacao] = useState("");
   const [mensagem, setMensagem] = useState("");
   const [sucesso, setSucesso] = useState(false);
   const [carregando, setCarregando] = useState(false);
@@ -58,17 +60,11 @@ export default function FormComanda({
     }
 
     if (tipoItemAtual === "INCOME") {
-      if (!categoriaServico) {
-        setMensagem("Selecione um serviço.");
-        return;
-      }
+      if (!categoriaServico) { setMensagem("Selecione um serviço."); return; }
       setItens([...itens, { tipo: "INCOME", category: categoriaServico, amount: valorNumerico }]);
     } else {
       const categoria = categoriasDespesa.find((c) => c.id === categoriaDespesaId);
-      if (!categoria) {
-        setMensagem("Selecione uma categoria de despesa.");
-        return;
-      }
+      if (!categoria) { setMensagem("Selecione uma categoria de despesa."); return; }
       setItens([...itens, { tipo: "EXPENSE", category: categoria.name, amount: valorNumerico, expenseCategoryId: categoria.id }]);
     }
     setMensagem("");
@@ -79,14 +75,8 @@ export default function FormComanda({
   }
 
   async function handleFechar() {
-    if (itens.length === 0) {
-      setMensagem("Adicione pelo menos um item à comanda.");
-      return;
-    }
-    if (role === "OWNER" && temIncome && !barberId) {
-      setMensagem("Selecione o barbeiro responsável pelos serviços.");
-      return;
-    }
+    if (itens.length === 0) { setMensagem("Adicione pelo menos um item à comanda."); return; }
+    if (role === "OWNER" && temIncome && !barberId) { setMensagem("Selecione o barbeiro responsável pelos serviços."); return; }
 
     setCarregando(true);
     setMensagem("");
@@ -96,6 +86,7 @@ export default function FormComanda({
         barberId: role === "OWNER" ? barberId : undefined,
         paymentMethod,
         clienteNome: clienteNome || undefined,
+        observacao: observacao || undefined,
         itens: itens.map((i) => ({ tipo: i.tipo, category: i.category, amount: i.amount, expenseCategoryId: i.expenseCategoryId })),
       });
 
@@ -129,27 +120,28 @@ export default function FormComanda({
       )}
 
       <div>
-        <label className="text-sm text-gray-400 block mb-1">Cliente (opcional)</label>
+        <label className="text-sm text-gray-400 block mb-1">Cliente</label>
         <input value={clienteNome} onChange={(e) => setClienteNome(e.target.value)} placeholder="Nome do cliente" className={inputClass} />
       </div>
+
+      <div>
+        <label className="text-sm text-gray-400 block mb-1">Observação (opcional)</label>
+        <textarea value={observacao} onChange={(e) => setObservacao(e.target.value)} rows={2} placeholder="Alguma observação sobre o atendimento" className={inputClass} />
+      </div>
+
+      <CartaoFidelidade clienteNome={clienteNome} />
 
       <div className="border-t border-gold-dark/20 pt-4">
         <label className="text-sm text-gray-400 block mb-2">Adicionar item</label>
 
         {role === "OWNER" && (
           <div className="flex gap-2 mb-2">
-            <button
-              type="button"
-              onClick={() => { setTipoItemAtual("INCOME"); handleServicoChange(servicos[0]?.name ?? ""); }}
-              className={`flex-1 rounded-lg px-3 py-1.5 text-sm font-semibold border ${tipoItemAtual === "INCOME" ? "bg-gold text-black-deep border-gold" : "bg-black-deep text-gray-300 border-gold-dark/40"}`}
-            >
+            <button type="button" onClick={() => { setTipoItemAtual("INCOME"); handleServicoChange(servicos[0]?.name ?? ""); }}
+              className={`flex-1 rounded-lg px-3 py-1.5 text-sm font-semibold border ${tipoItemAtual === "INCOME" ? "bg-gold text-black-deep border-gold" : "bg-black-deep text-gray-300 border-gold-dark/40"}`}>
               Serviço
             </button>
-            <button
-              type="button"
-              onClick={() => { setTipoItemAtual("EXPENSE"); setValorItem(""); }}
-              className={`flex-1 rounded-lg px-3 py-1.5 text-sm font-semibold border ${tipoItemAtual === "EXPENSE" ? "bg-gold text-black-deep border-gold" : "bg-black-deep text-gray-300 border-gold-dark/40"}`}
-            >
+            <button type="button" onClick={() => { setTipoItemAtual("EXPENSE"); setValorItem(""); }}
+              className={`flex-1 rounded-lg px-3 py-1.5 text-sm font-semibold border ${tipoItemAtual === "EXPENSE" ? "bg-gold text-black-deep border-gold" : "bg-black-deep text-gray-300 border-gold-dark/40"}`}>
               Despesa
             </button>
           </div>
@@ -167,9 +159,7 @@ export default function FormComanda({
             </select>
           )}
           <input type="number" step="0.01" min="0.01" value={valorItem} onChange={(e) => setValorItem(e.target.value)} placeholder="Valor" className={inputClass} />
-          <button type="button" onClick={adicionarItem} className="bg-gold-dark text-black-deep font-semibold rounded-lg px-4 py-2 hover:bg-gold transition-colors whitespace-nowrap">
-            + Adicionar
-          </button>
+          <button type="button" onClick={adicionarItem} className="bg-gold-dark text-black-deep font-semibold rounded-lg px-4 py-2 hover:bg-gold transition-colors whitespace-nowrap">+ Adicionar</button>
         </div>
       </div>
 
@@ -197,26 +187,16 @@ export default function FormComanda({
         <label className="text-sm text-gray-400 block mb-2">Forma de pagamento</label>
         <div className="grid grid-cols-2 gap-2">
           {METODOS_PAGAMENTO.map((m) => (
-            <button
-              key={m.valor}
-              type="button"
-              onClick={() => setPaymentMethod(m.valor)}
-              className={`rounded-lg px-3 py-2 text-sm font-semibold border transition-colors ${
-                paymentMethod === m.valor ? "bg-gold text-black-deep border-gold" : "bg-black-deep text-gray-300 border-gold-dark/40 hover:border-gold"
-              }`}
-            >
+            <button key={m.valor} type="button" onClick={() => setPaymentMethod(m.valor)}
+              className={`rounded-lg px-3 py-2 text-sm font-semibold border transition-colors ${paymentMethod === m.valor ? "bg-gold text-black-deep border-gold" : "bg-black-deep text-gray-300 border-gold-dark/40 hover:border-gold"}`}>
               {m.label}
             </button>
           ))}
         </div>
       </div>
 
-      <button
-        type="button"
-        onClick={handleFechar}
-        disabled={carregando || itens.length === 0}
-        className="bg-gold text-black-deep font-semibold rounded-lg py-2.5 hover:bg-gold-light transition-colors disabled:opacity-50 mt-2"
-      >
+      <button type="button" onClick={handleFechar} disabled={carregando || itens.length === 0}
+        className="bg-gold text-black-deep font-semibold rounded-lg py-2.5 hover:bg-gold-light transition-colors disabled:opacity-50 mt-2">
         {carregando ? "Fechando..." : `Fechar Comanda${itens.length > 0 ? ` — ${formatar(total)}` : ""}`}
       </button>
       {mensagem && <p className={sucesso ? "text-green-400 text-sm" : "text-red-400 text-sm"}>{mensagem}</p>}

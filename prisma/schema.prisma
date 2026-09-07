@@ -53,6 +53,7 @@ model User {
   pushSubscriptions     PushSubscription[]
   comissoesLiquidadas   CommissionSettlement[] @relation("ComissoesLiquidadas")
   liquidacoesRealizadas CommissionSettlement[] @relation("LiquidacoesRealizadas")
+  diasFechados          DailyClosure[]
 
   @@index([status])
   @@index([role])
@@ -78,6 +79,7 @@ model Transaction {
   comandaId     String?
   paymentMethod PaymentMethod?
   clienteNome   String?
+  observacao    String?
 
   createdById String
   createdBy   User     @relation("CriadoPor", fields: [createdById], references: [id])
@@ -135,10 +137,26 @@ model ExpenseCategory {
   createdAt   DateTime            @default(now())
   updatedAt   DateTime            @updatedAt
 
-    transacoes  Transaction[]
+  transacoes  Transaction[]
   alertas     BudgetAlert[]
 
   @@index([type])
+}
+
+enum BudgetAlertLevel {
+  ATENCAO
+  ESTOURADO
+}
+
+model BudgetAlert {
+  id                String           @id @default(cuid())
+  expenseCategoryId String
+  expenseCategory   ExpenseCategory  @relation(fields: [expenseCategoryId], references: [id])
+  mes               DateTime
+  level             BudgetAlertLevel
+  createdAt         DateTime         @default(now())
+
+  @@unique([expenseCategoryId, mes, level])
 }
 
 model MonthlyClosure {
@@ -176,6 +194,24 @@ model CommissionSettlement {
   @@index([barberId])
 }
 
+model LoyaltyCard {
+  id                     String   @id @default(cuid())
+  clienteNome            String
+  clienteNomeNormalizado String   @unique
+  marcasAtuais           Int      @default(0)
+  cartoesCompletos       Int      @default(0)
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
+}
+
+model DailyClosure {
+  id         String   @id @default(cuid())
+  data       DateTime @unique
+  closedById String
+  closedBy   User     @relation(fields: [closedById], references: [id])
+  createdAt  DateTime @default(now())
+}
+
 model PushSubscription {
   id        String   @id @default(cuid())
   userId    String
@@ -195,20 +231,4 @@ model LoginAttempt {
   createdAt  DateTime @default(now())
 
   @@index([identifier, createdAt])
-}
-
-enum BudgetAlertLevel {
-  ATENCAO
-  ESTOURADO
-}
-
-model BudgetAlert {
-  id                String           @id @default(cuid())
-  expenseCategoryId String
-  expenseCategory   ExpenseCategory  @relation(fields: [expenseCategoryId], references: [id])
-  mes               DateTime
-  level             BudgetAlertLevel
-  createdAt         DateTime         @default(now())
-
-  @@unique([expenseCategoryId, mes, level])
 }

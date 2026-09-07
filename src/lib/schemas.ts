@@ -109,6 +109,7 @@ export const comandaSchema = z.object({
   barberId: z.string().trim().optional(),
   paymentMethod: z.enum(["DINHEIRO", "PIX", "CARTAO_DEBITO", "CARTAO_CREDITO"]),
   clienteNome: z.string().trim().max(100).optional(),
+  observacao: z.string().trim().max(500).optional(),
   itens: z
     .array(
       z.object({
@@ -119,8 +120,4 @@ export const comandaSchema = z.object({
       })
     )
     .min(1, "Adicione pelo menos um item à comanda."),
-});
-
-export const liquidarComissaoSchema = z.object({
-  valorPago: numeroPtBR().refine((v) => v > 0, "Informe um valor maior que zero."),
 });

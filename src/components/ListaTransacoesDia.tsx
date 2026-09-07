@@ -8,6 +8,7 @@ export type TransacaoView = {
   type: "INCOME" | "EXPENSE";
   category: string;
   description: string | null;
+  observacao: string |null;
   amount: number;
   date: string;
   barberNome: string | null;
@@ -104,6 +105,7 @@ export default function ListaTransacoesDia({ servicos, gastos }: { servicos: Ite
                   <Linha label="Data" valor={new Date(selecionado.date).toLocaleString("pt-BR")} />
                   {selecionado.barberNome && <Linha label="Barbeiro" valor={selecionado.barberNome} />}
                   {selecionado.itens[0]?.clienteNome && <Linha label="Cliente" valor={selecionado.itens[0].clienteNome!} />}
+                                    {selecionado.itens[0]?.observacao && <Linha label="Observação" valor={selecionado.itens[0].observacao} />}
                   {selecionado.itens[0]?.paymentMethod && (
                     <Linha label="Pagamento" valor={PAGAMENTO_LABEL[selecionado.itens[0].paymentMethod!] ?? selecionado.itens[0].paymentMethod!} />
                   )}
