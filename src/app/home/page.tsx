@@ -9,6 +9,7 @@ import GraficoComparacaoGastosServicos from "@/components/GraficoComparacaoGasto
 import { serieUltimosDias } from "@/lib/dashboardData";
 import { evolucaoUltimosMeses } from "@/lib/dashboardFinanceiro";
 import { calcularFechamento } from "@/lib/fechamentoMensal";
+import { limitesDoMesEspecifico } from "@/lib/datasBrasil";
 
 export default async function HomePage() {
   const session = await auth();
@@ -21,8 +22,11 @@ export default async function HomePage() {
   const formatar = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
   if (role === "BARBER") {
+    const agora = new Date();
+    const { inicio, fimExclusivo } = limitesDoMesEspecifico(agora.getUTCFullYear(), agora.getUTCMonth());
+
     const agg = await prisma.transaction.aggregate({
-      where: { barberId: userId, type: "INCOME", deletedAt: null },
+      where: { barberId: userId, type: "INCOME", deletedAt: null, date: { gte: inicio, lt: fimExclusivo } },
       _sum: { commissionAmount: true, amount: true },
       _count: true,
     });
@@ -36,12 +40,12 @@ export default async function HomePage() {
         <SplashHome />
         <main className="flex-1 max-w-4xl w-full mx-auto px-4 py-8">
           <h1 className="font-display text-2xl text-gold mb-1">Bem-vindo, {nome}</h1>
-          <p className="text-gray-400 mb-8">Resumo do seu desempenho na BlackCut.</p>
+          <p className="text-gray-400 mb-8">Resumo do seu desempenho na BlackCut — mês atual.</p>
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-10">
-            <Card titulo="Comissão acumulada" valor={formatar(totalComissao)} destaque />
-            <Card titulo="Total gerado" valor={formatar(totalGerado)} />
-            <Card titulo="Serviços realizados" valor={String(agg._count)} />
+            <Card titulo="Comissão do mês" valor={formatar(totalComissao)} destaque />
+            <Card titulo="Total gerado (mês)" valor={formatar(totalGerado)} />
+            <Card titulo="Serviços (mês)" valor={String(agg._count)} />
           </div>
 
           <div className="border border-gold-dark/40 bg-black-soft rounded-xl p-4 mb-10">

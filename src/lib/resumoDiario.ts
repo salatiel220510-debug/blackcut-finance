@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { enviarEmail } from "@/lib/email";
+import { enviarPushParaTodosAprovados } from "@/lib/push";
 import { limitesDoDiaEspecifico, hojeBrasilString } from "@/lib/datasBrasil";
 
 export async function enviarResumoDiario() {
@@ -51,6 +52,11 @@ export async function enviarResumoDiario() {
       </table>
     `,
   });
+
+  await enviarPushParaTodosAprovados({
+    title: `Resumo do dia ${dataFormatada}`,
+    body: `Entradas: ${formatar(totalEntradas)} | Saídas: ${formatar(totalSaidas)}`,
+  }).catch((e) => console.error("[resumo-diario] push:", e));
 
   const barberIds = [...new Set(transacoesHoje.filter((t) => t.barberId).map((t) => t.barberId as string))];
   let enviadosBarbeiros = 0;

@@ -1,15 +1,45 @@
 import { prisma } from "@/lib/prisma";
 import { calcularFechamento } from "@/lib/fechamentoMensal";
 
-function limitesDoMesUTC(ano: number, mesIndex0: number) {
-  const OFFSET = 3 * 60 * 60 * 1000;
+const OFFSET_BRASIL_HORAS = 3;
+
+export function limitesDoDiaEspecifico(dataString: string) {
+  const [ano, mes, dia] = dataString.split("-").map(Number);
+  const inicioBrasil = Date.UTC(ano, mes - 1, dia, 0, 0, 0, 0);
+  const fimBrasil = Date.UTC(ano, mes - 1, dia, 23, 59, 59, 999);
+  return {
+    inicio: new Date(inicioBrasil + OFFSET_BRASIL_HORAS * 60 * 60 * 1000),
+    fim: new Date(fimBrasil + OFFSET_BRASIL_HORAS * 60 * 60 * 1000),
+  };
+}
+
+export function hojeBrasilString() {
+  const brasil = new Date(Date.now() - OFFSET_BRASIL_HORAS * 60 * 60 * 1000);
+  const ano = brasil.getUTCFullYear();
+  const mes = String(brasil.getUTCMonth() + 1).padStart(2, "0");
+  const dia = String(brasil.getUTCDate()).padStart(2, "0");
+  return `${ano}-${mes}-${dia}`;
+}
+
+export function diaBrasilDeData(data: Date): string {
+  const brasil = new Date(data.getTime() - OFFSET_BRASIL_HORAS * 60 * 60 * 1000);
+  const ano = brasil.getUTCFullYear();
+  const mes = String(brasil.getUTCMonth() + 1).padStart(2, "0");
+  const dia = String(brasil.getUTCDate()).padStart(2, "0");
+  return `${ano}-${mes}-${dia}`;
+}
+
+export function limitesDoMesEspecifico(ano: number, mesIndex0: number) {
   const inicioBrasil = Date.UTC(ano, mesIndex0, 1, 0, 0, 0, 0);
   const fimBrasil = Date.UTC(ano, mesIndex0 + 1, 1, 0, 0, 0, 0);
-  return { inicio: new Date(inicioBrasil + OFFSET), fimExclusivo: new Date(fimBrasil + OFFSET) };
+  return {
+    inicio: new Date(inicioBrasil + OFFSET_BRASIL_HORAS * 60 * 60 * 1000),
+    fimExclusivo: new Date(fimBrasil + OFFSET_BRASIL_HORAS * 60 * 60 * 1000),
+  };
 }
 
 export async function despesasPorCategoriaMes(ano: number, mesIndex0: number) {
-  const { inicio, fimExclusivo } = limitesDoMesUTC(ano, mesIndex0);
+  const { inicio, fimExclusivo } = limitesDoMesEspecifico(ano, mesIndex0);
 
   const despesas = await prisma.transaction.findMany({
     where: { type: "EXPENSE", deletedAt: null, date: { gte: inicio, lt: fimExclusivo } },

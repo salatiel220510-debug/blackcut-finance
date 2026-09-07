@@ -2,18 +2,10 @@ import { prisma } from "@/lib/prisma";
 import { enviarEmail } from "@/lib/email";
 import { enviarPushParaDonos } from "@/lib/push";
 
-function limitesDoMes(ano: number, mesIndex0: number) {
-  const OFFSET_BRASIL_HORAS = 3;
-  const inicioBrasil = Date.UTC(ano, mesIndex0, 1, 0, 0, 0, 0);
-  const fimBrasil = Date.UTC(ano, mesIndex0 + 1, 1, 0, 0, 0, 0);
-  return {
-    inicio: new Date(inicioBrasil + OFFSET_BRASIL_HORAS * 60 * 60 * 1000),
-    fimExclusivo: new Date(fimBrasil + OFFSET_BRASIL_HORAS * 60 * 60 * 1000),
-  };
-}
+import { limitesDoMesEspecifico } from "@/lib/datasBrasil";
 
 export async function calcularFechamento(ano: number, mesIndex0: number) {
-  const { inicio, fimExclusivo } = limitesDoMes(ano, mesIndex0);
+  const { inicio, fimExclusivo } = limitesDoMesEspecifico(ano, mesIndex0);
 
   const transacoes = await prisma.transaction.findMany({
     where: { date: { gte: inicio, lt: fimExclusivo }, deletedAt: null },
