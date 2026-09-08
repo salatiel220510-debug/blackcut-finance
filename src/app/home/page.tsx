@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import GraficoLinhaCaixa from "@/components/GraficoLinhaCaixa";
 import GraficoComparacaoGastosServicos from "@/components/GraficoComparacaoGastosServicos";
+import IconeSino from "@/components/IconeSino";
 import { serieUltimosDias } from "@/lib/dashboardData";
 import { evolucaoUltimosMeses } from "@/lib/dashboardFinanceiro";
 import { calcularFechamento } from "@/lib/fechamentoMensal";
@@ -39,7 +40,12 @@ export default async function HomePage() {
       <div className="min-h-screen flex flex-col">
         <SplashHome />
         <main className="flex-1 max-w-4xl w-full mx-auto px-4 py-8">
-          <h1 className="font-display text-2xl text-gold mb-1">Bem-vindo, {nome}</h1>
+          <div className="flex items-center justify-between mb-1">
+            <h1 className="font-display text-2xl text-gold">Bem-vindo, {nome}</h1>
+            <Link href="/notificacoes" title="Avisos" className="text-gold-dark hover:text-gold">
+              <IconeSino size={26} />
+            </Link>
+          </div>
           <p className="text-gray-400 mb-8">Resumo do seu desempenho na BlackCut — mês atual.</p>
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-10">
@@ -93,7 +99,12 @@ export default async function HomePage() {
     <div className="min-h-screen flex flex-col">
       <SplashHome />
       <main className="flex-1 max-w-4xl w-full mx-auto px-4 py-8">
-        <h1 className="font-display text-2xl text-gold mb-1">Bem-vindo, {nome}</h1>
+        <div className="flex items-center justify-between mb-1">
+          <h1 className="font-display text-2xl text-gold">Bem-vindo, {nome}</h1>
+          <Link href="/notificacoes" title="Avisos" className="text-gold-dark hover:text-gold">
+            <IconeSino size={26} />
+          </Link>
+        </div>
         <p className="text-gray-400 mb-8">Visão geral do negócio — mês atual.</p>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">

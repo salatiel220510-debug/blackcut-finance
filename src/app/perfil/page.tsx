@@ -4,6 +4,10 @@ import { redirect } from "next/navigation";
 import Footer from "@/components/Footer";
 import FormSenha from "./form-senha";
 import { calcularNivel } from "@/lib/niveis";
+import { comissaoPendenteBarbeiro, totalRecebidoMesBarbeiro } from "@/lib/comissoesPendentes";
+import { faturamentoMensalBarbeiro } from "@/lib/faturamentoBarbeiro";
+import { fundosMensais } from "@/lib/dashboardFinanceiro";
+import GraficoBarraMensalSimples from "@/components/GraficoBarraMensalSimples";
 import PushNotificationSetup from "@/components/PushNotificationSetup";
 import GerarCodigoAcesso from "@/components/GerarCodigoAcesso";
 
@@ -25,60 +29,81 @@ export default async function PerfilPage() {
   const settings = await prisma.settings.findUnique({ where: { id: 1 } });
   const comissaoPercentual = settings ? Number(settings.commissionPercentage) : 40;
 
-  let nivel = null;
-  let faturamentoTotal = 0;
-  let comissaoSaldo = 0;
-  let comissaoPaga = 0;
-
   if (role === "BARBER") {
-    const agg = await prisma.transaction.aggregate({
-      where: { barberId: userId, type: "INCOME", deletedAt: null },
-      _sum: { amount: true },
-    });
-    faturamentoTotal = Number(agg._sum.amount ?? 0);
-    nivel = calcularNivel(faturamentoTotal);
-
-    const [pendentesAgg, pagasAgg] = await Promise.all([
+    const [agg, faturamentoMensal, comissaoSaldo, comissaoRecebidaMes] = await Promise.all([
       prisma.transaction.aggregate({
-        where: {
-          barberId: userId,
-          type: "INCOME",
-          deletedAt: null,
-          commissionAmount: { not: null },
-          commissionSettled: false,
-        },
-        _sum: { commissionAmount: true },
+        where: { barberId: userId, type: "INCOME", deletedAt: null },
+        _sum: { amount: true },
       }),
-      prisma.transaction.aggregate({
-        where: {
-          barberId: userId,
-          type: "INCOME",
-          deletedAt: null,
-          commissionAmount: { not: null },
-          commissionSettled: true,
-        },
-        _sum: { commissionAmount: true },
-      }),
+      faturamentoMensalBarbeiro(userId, 6),
+      comissaoPendenteBarbeiro(userId),
+      totalRecebidoMesBarbeiro(userId),
     ]);
-    comissaoSaldo = Number(pendentesAgg._sum.commissionAmount ?? 0);
-    comissaoPaga = Number(pagasAgg._sum.commissionAmount ?? 0);
+
+    const faturamentoTotal = Number(agg._sum.amount ?? 0);
+    const nivel = calcularNivel(faturamentoTotal);
+
+    return (
+      <div className="min-h-screen flex flex-col">
+        <main className="flex-1 max-w-2xl w-full mx-auto px-4 py-8">
+          <h1 className="font-display text-2xl text-gold mb-1">Meu Perfil</h1>
+          <p className="text-gray-400 mb-8">Membro desde {membroDesde}</p>
+
+          <section className="border border-gold-dark/40 bg-black-soft rounded-xl p-5 mb-6">
+            <InfoLinha label="Nome" valor={user.name} />
+            <InfoLinha label="Email" valor={user.email} />
+            <InfoLinha label="Cargo" valor="Barbeiro" />
+            <InfoLinha label="Nível de Experiência" valor={nivel} destaque />
+          </section>
+
+          <section className="border border-gold-dark/40 bg-black-soft rounded-xl p-5 mb-6">
+            <h2 className="font-display text-lg text-gold mb-3">Faturamento Gerado</h2>
+            <p className="text-2xl font-bold text-gold mb-3">{formatar(faturamentoTotal)}</p>
+            <GraficoBarraMensalSimples dados={faturamentoMensal} chaveValor="faturamento" nomeSerie="Faturamento" />
+          </section>
+
+          <section className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
+            <Card titulo="Comissão a receber" valor={formatar(comissaoSaldo)} destaque />
+            <Card titulo="Já recebido (mês)" valor={formatar(comissaoRecebidaMes)} />
+          </section>
+
+          <section className="border border-gold-dark/40 bg-black-soft rounded-xl p-5 mb-6">
+            <h2 className="font-display text-lg text-gold mb-3">Notificações</h2>
+            <p className="text-gray-400 text-sm mb-3">Receba avisos importantes da barbearia no seu celular.</p>
+            <PushNotificationSetup />
+          </section>
+
+          <section className="border border-gold-dark/40 bg-black-soft rounded-xl p-5">
+            <h2 className="font-display text-lg text-gold mb-4">Alterar Senha</h2>
+            <FormSenha />
+          </section>
+        </main>
+        <Footer role={role} />
+      </div>
+    );
   }
 
-  let lucroLiquido = 0;
-  if (role === "OWNER") {
-    const [entradasAgg, saidasAgg, comissoesAgg] = await Promise.all([
-      prisma.transaction.aggregate({ where: { type: "INCOME", deletedAt: null }, _sum: { amount: true } }),
-      prisma.transaction.aggregate({ where: { type: "EXPENSE", deletedAt: null }, _sum: { amount: true } }),
-      prisma.transaction.aggregate({
-        where: { type: "INCOME", deletedAt: null, commissionAmount: { not: null }, commissionSettled: false },
-        _sum: { commissionAmount: true },
-      }),
-    ]);
-    lucroLiquido =
-      Number(entradasAgg._sum.amount ?? 0) -
-      Number(saidasAgg._sum.amount ?? 0) -
-      Number(comissoesAgg._sum.commissionAmount ?? 0);
-  }
+  const [fundosMensaisData, entradasTotalAgg, saidasTotalAgg, comissoesAgg, barbeiros] = await Promise.all([
+    fundosMensais(6),
+    prisma.transaction.aggregate({ where: { type: "INCOME", deletedAt: null }, _sum: { amount: true } }),
+    prisma.transaction.aggregate({ where: { type: "EXPENSE", deletedAt: null }, _sum: { amount: true } }),
+    prisma.transaction.aggregate({
+      where: { type: "INCOME", deletedAt: null, commissionAmount: { not: null }, commissionSettled: false },
+      _sum: { commissionAmount: true },
+    }),
+    prisma.user.findMany({ where: { role: "BARBER", status: "APPROVED" }, orderBy: { name: "asc" } }),
+  ]);
+
+  const totalEntradasGeral = Number(entradasTotalAgg._sum.amount ?? 0);
+  const totalSaidasGeral = Number(saidasTotalAgg._sum.amount ?? 0);
+  const totalComissoesPendentes = Number(comissoesAgg._sum.commissionAmount ?? 0);
+  const fundosAtuais = totalEntradasGeral - totalSaidasGeral - totalComissoesPendentes;
+  const saldoBancario = settings ? Number(settings.saldoBancario) : 0;
+  const diferenca = fundosAtuais - saldoBancario;
+
+  const comissoesPorBarbeiro = await Promise.all(
+    barbeiros.map(async (b) => ({ nome: b.name, pendente: await comissaoPendenteBarbeiro(b.id) }))
+  );
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -89,44 +114,61 @@ export default async function PerfilPage() {
         <section className="border border-gold-dark/40 bg-black-soft rounded-xl p-5 mb-6">
           <InfoLinha label="Nome" valor={user.name} />
           <InfoLinha label="Email" valor={user.email} />
-          <InfoLinha label="Cargo" valor={role === "OWNER" ? "Dono" : "Barbeiro"} />
-          {role === "BARBER" && <InfoLinha label="Nível" valor={nivel ?? ""} destaque />}
+          <InfoLinha label="Cargo" valor="Dono" />
         </section>
 
-        {role === "BARBER" && (
-          <section className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
-            <Card titulo="Faturamento gerado" valor={formatar(faturamentoTotal)} />
-            <Card titulo="Comissão a receber" valor={formatar(comissaoSaldo)} destaque />
-            <Card titulo="Já recebido" valor={formatar(comissaoPaga)} />
-          </section>
-        )}
+        <section className="border border-gold-dark/40 bg-black-soft rounded-xl p-5 mb-6">
+          <h2 className="font-display text-lg text-gold mb-3">Fundos da Barbearia</h2>
+          <p className="text-2xl font-bold text-gold mb-3">{formatar(fundosAtuais)}</p>
+          <GraficoBarraMensalSimples dados={fundosMensaisData} chaveValor="fundos" nomeSerie="Fundos" />
+          <table className="w-full text-sm mt-4">
+            <tbody>
+              <tr className="border-b border-gold-dark/20">
+                <td className="py-2 text-gray-400">Saldo bancário informado</td>
+                <td className="py-2 text-right font-bold text-white">{formatar(saldoBancario)}</td>
+              </tr>
+              <tr>
+                <td className="py-2 text-gray-400">Diferença</td>
+                <td className={`py-2 text-right font-bold ${Math.abs(diferenca) < 0.01 ? "text-green-400" : "text-red-400"}`}>
+                  {formatar(diferenca)}
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </section>
 
-        {role === "OWNER" && (
-          <section className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
-            <Card titulo="Fundos da Barbearia" valor={formatar(lucroLiquido)} destaque />
-            <Card titulo="Comissão configurada" valor={`${comissaoPercentual}%`} />
-          </section>
-        )}
+        <section className="border border-gold-dark/40 bg-black-soft rounded-xl p-5 mb-6">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="font-display text-lg text-gold">Comissão a Pagar</h2>
+            <span className="text-gray-400 text-xs">Configurada: {comissaoPercentual}%</span>
+          </div>
+          {comissoesPorBarbeiro.length === 0 && <p className="text-gray-400 text-sm">Nenhum barbeiro aprovado ainda.</p>}
+          <div className="flex flex-col gap-2">
+            {comissoesPorBarbeiro.map((b, i) => (
+              <div key={i} className="flex justify-between text-sm py-1.5 border-b border-gold-dark/10 last:border-0">
+                <span className="text-gray-200">{b.nome}</span>
+                <span className={b.pendente > 0 ? "text-gold font-semibold" : "text-gray-500"}>{formatar(b.pendente)}</span>
+              </div>
+            ))}
+          </div>
+          <a href="/admin/comissoes" className="text-gold text-xs underline mt-3 inline-block">Ir para pagamentos →</a>
+        </section>
 
-        {role === "OWNER" && (
-          <section className="border border-gold-dark/40 bg-black-soft rounded-xl p-5 mb-6">
-            <h2 className="font-display text-lg text-gold mb-3">Notificações</h2>
-            <p className="text-gray-400 text-sm mb-3">
-              Receba um aviso no celular sempre que um barbeiro registrar ou excluir um lançamento.
-            </p>
-            <PushNotificationSetup />
-          </section>
-        )}
+        <section className="border border-gold-dark/40 bg-black-soft rounded-xl p-5 mb-6">
+          <h2 className="font-display text-lg text-gold mb-3">Código de Acesso para Barbeiros</h2>
+          <p className="text-gray-400 text-sm mb-3">
+            Necessário no primeiro login de um barbeiro recém-aprovado, ou sempre que ele trocar a própria senha.
+          </p>
+          <GerarCodigoAcesso />
+        </section>
 
-        {role === "OWNER" && (
-          <section className="border border-gold-dark/40 bg-black-soft rounded-xl p-5 mb-6">
-            <h2 className="font-display text-lg text-gold mb-3">Código de Acesso para Barbeiros</h2>
-            <p className="text-gray-400 text-sm mb-3">
-              Necessário no primeiro login de um barbeiro recém-aprovado, ou sempre que ele trocar a própria senha.
-            </p>
-            <GerarCodigoAcesso />
-          </section>
-        )}
+        <section className="border border-gold-dark/40 bg-black-soft rounded-xl p-5 mb-6">
+          <h2 className="font-display text-lg text-gold mb-3">Notificações</h2>
+          <p className="text-gray-400 text-sm mb-3">
+            Receba um aviso no celular sempre que um barbeiro registrar ou excluir um lançamento.
+          </p>
+          <PushNotificationSetup />
+        </section>
 
         <section className="border border-gold-dark/40 bg-black-soft rounded-xl p-5">
           <h2 className="font-display text-lg text-gold mb-4">Alterar Senha</h2>

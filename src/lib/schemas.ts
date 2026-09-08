@@ -84,6 +84,7 @@ export const pushSubscribeSchema = z.object({
     auth: z.string().min(1),
   }),
 });
+
 export const envelopesSchema = z.object({
   envelopeOperacionalPct: numeroPtBR().refine((v) => v >= 0 && v <= 100, "Percentual inválido."),
   envelopeProLaborePct: numeroPtBR().refine((v) => v >= 0 && v <= 100, "Percentual inválido."),
@@ -120,4 +121,13 @@ export const comandaSchema = z.object({
       })
     )
     .min(1, "Adicione pelo menos um item à comanda."),
+});
+
+export const liquidarComissaoSchema = z.object({
+  valorPago: numeroPtBR().refine((v) => v > 0, "Informe um valor maior que zero."),
+});
+
+export const notificacaoSchema = z.object({
+  title: z.string().trim().min(1, "Informe um título.").max(100, "Título muito longo."),
+  body: z.string().trim().min(1, "Informe a mensagem.").max(500, "Mensagem muito longa."),
 });

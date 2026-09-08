@@ -14,7 +14,6 @@ import {
   atualizarBudgetCategoria,
   desativarCategoriaDespesa,
 } from "./actions";
-import SeletorDataPopover from "@/components/SeletorDataPopover";
 
 type Servico = {
   id: string;
@@ -41,6 +40,11 @@ const TIPOS_LABEL: Record<Categoria["type"], string> = {
 };
 
 const inputClass = "bg-black-deep border border-gold-dark/40 rounded-lg px-3 py-2 text-white w-full";
+const ABAS = [
+  { id: "monetario", label: "Controle Monetário" },
+  { id: "envelope", label: "Envelope e Metas" },
+  { id: "categorias", label: "Categorias" },
+] as const;
 
 export default function ConfiguracoesForm({
   comissaoAtual,
@@ -57,6 +61,7 @@ export default function ConfiguracoesForm({
   servicos: Servico[];
   categorias: Categoria[];
 }) {
+  const [aba, setAba] = useState<(typeof ABAS)[number]["id"]>("monetario");
   const [mensagem, setMensagem] = useState("");
 
   async function handleComissao(e: React.FormEvent<HTMLFormElement>) {
@@ -98,112 +103,138 @@ export default function ConfiguracoesForm({
   }
 
   return (
-    <div className="flex flex-col gap-8">
-      <section className="border border-gold-dark/40 bg-black-soft rounded-xl p-5">
-        <h2 className="font-display text-lg text-gold mb-4">Percentual de Comissão</h2>
-        <form onSubmit={handleComissao} className="flex gap-2">
-          <input name="commissionPercentage" type="number" step="0.01" min="0" max="100" defaultValue={comissaoAtual} required className={inputClass} />
-          <button type="submit" className="bg-gold text-black-deep font-semibold rounded-lg px-4 hover:bg-gold-light transition-colors whitespace-nowrap">
-            Salvar
+    <div className="flex flex-col gap-6">
+      <nav className="flex flex-wrap gap-2 border-b border-gold-dark/30 pb-3">
+        {ABAS.map((a) => (
+          <button
+            key={a.id}
+            onClick={() => { setAba(a.id); setMensagem(""); }}
+            className={`text-sm font-semibold rounded-full px-4 py-2 border transition-colors ${
+              aba === a.id ? "bg-gold text-black-deep border-gold" : "bg-black-soft text-gray-300 border-gold-dark/40 hover:border-gold"
+            }`}
+          >
+            {a.label}
           </button>
-        </form>
-      </section>
+        ))}
+      </nav>
 
-      <section className="border border-gold-dark/40 bg-black-soft rounded-xl p-5">
-        <h2 className="font-display text-lg text-gold mb-4">Saldo Bancário Atual</h2>
-        <p className="text-gray-400 text-sm mb-3">
-          Valor real que a conta bancária da barbearia possui hoje — usado só como referência.
-        </p>
-        <form onSubmit={handleSaldo} className="flex gap-2">
-          <input name="saldoBancario" type="number" step="0.01" defaultValue={saldoAtual} required className={inputClass} />
-          <button type="submit" className="bg-gold text-black-deep font-semibold rounded-lg px-4 hover:bg-gold-light transition-colors whitespace-nowrap">
-            Salvar
-          </button>
-        </form>
-      </section>
+      {aba === "monetario" && (
+        <div className="flex flex-col gap-6">
+          <section className="border border-gold-dark/40 bg-black-soft rounded-xl p-5">
+            <h2 className="font-display text-lg text-gold mb-4">Percentual de Comissão</h2>
+            <form onSubmit={handleComissao} className="flex gap-2">
+              <input name="commissionPercentage" type="number" step="0.01" min="0" max="100" defaultValue={comissaoAtual} required className={inputClass} />
+              <button type="submit" className="bg-gold text-black-deep font-semibold rounded-lg px-4 hover:bg-gold-light transition-colors whitespace-nowrap">
+                Salvar
+              </button>
+            </form>
+          </section>
 
-      <section className="border border-gold-dark/40 bg-black-soft rounded-xl p-5">
-        <h2 className="font-display text-lg text-gold mb-2">Sistema de Envelopes</h2>
-        <p className="text-gray-400 text-sm mb-4">
-          No fechamento mensal, o lucro líquido é dividido automaticamente entre estes três percentuais. A soma precisa ser exatamente 100%.
-        </p>
-        <form onSubmit={handleEnvelopes} className="flex flex-col gap-3">
-          <div>
-            <label className="text-sm text-gray-300 block mb-1">Operacional (%)</label>
-            <input name="envelopeOperacionalPct" type="number" step="0.01" min="0" max="100" defaultValue={envelopes.operacional} required className={inputClass} />
-          </div>
-          <div>
-            <label className="text-sm text-gray-300 block mb-1">Pró-labore — seu salário (%)</label>
-            <input name="envelopeProLaborePct" type="number" step="0.01" min="0" max="100" defaultValue={envelopes.proLabore} required className={inputClass} />
-          </div>
-          <div>
-            <label className="text-sm text-gray-300 block mb-1">Reserva (%)</label>
-            <input name="envelopeReservaPct" type="number" step="0.01" min="0" max="100" defaultValue={envelopes.reserva} required className={inputClass} />
-          </div>
-          <button type="submit" className="bg-gold text-black-deep font-semibold rounded-lg px-4 py-2 hover:bg-gold-light transition-colors">
-            Salvar Percentuais
-          </button>
-        </form>
-      </section>
-
-      <section className="border border-gold-dark/40 bg-black-soft rounded-xl p-5">
-        <h2 className="font-display text-lg text-gold mb-4">Metas (opcional)</h2>
-        <form onSubmit={handleMetas} className="flex flex-col gap-3">
-          <div>
-            <label className="text-sm text-gray-300 block mb-1">Meta de Pró-labore (R$)</label>
-            <input name="proLaboreMeta" type="number" step="0.01" min="0" defaultValue={metas.proLabore ?? ""} placeholder="Sem meta definida" className={inputClass} />
-          </div>
-          <div>
-            <label className="text-sm text-gray-300 block mb-1">Meta de Reserva (R$)</label>
-            <input name="reservaMeta" type="number" step="0.01" min="0" defaultValue={metas.reserva ?? ""} placeholder="Sem meta definida" className={inputClass} />
-          </div>
-          <button type="submit" className="bg-gold text-black-deep font-semibold rounded-lg px-4 py-2 hover:bg-gold-light transition-colors">
-            Salvar Metas
-          </button>
-        </form>
-      </section>
-
-      <section className="border border-gold-dark/40 bg-black-soft rounded-xl p-5">
-        <h2 className="font-display text-lg text-gold mb-4">Categorias de Despesa</h2>
-        <div className="flex flex-col gap-3">
-          {categorias.filter((c) => c.active).map((c) => (
-            <CategoriaLinha key={c.id} categoria={c} />
-          ))}
+          <section className="border border-gold-dark/40 bg-black-soft rounded-xl p-5">
+            <h2 className="font-display text-lg text-gold mb-4">Saldo Bancário Atual</h2>
+            <p className="text-gray-400 text-sm mb-3">
+              Valor real que a conta bancária da barbearia possui hoje — usado só como referência.
+            </p>
+            <form onSubmit={handleSaldo} className="flex gap-2">
+              <input name="saldoBancario" type="number" step="0.01" defaultValue={saldoAtual} required className={inputClass} />
+              <button type="submit" className="bg-gold text-black-deep font-semibold rounded-lg px-4 hover:bg-gold-light transition-colors whitespace-nowrap">
+                Salvar
+              </button>
+            </form>
+          </section>
         </div>
+      )}
 
-        <h3 className="font-display text-base text-gold mt-6 mb-3">Adicionar nova categoria</h3>
-        <form onSubmit={handleNovaCategoria} className="flex flex-col gap-2">
-          <input name="name" placeholder="Nome da categoria" required className={inputClass} />
-          <select name="type" required className={inputClass}>
-            <option value="FIXED">Fixa</option>
-            <option value="VARIABLE">Variável</option>
-            <option value="INVESTMENT">Investimento</option>
-            <option value="MARKETING">Marketing</option>
-          </select>
-          <input name="budgetLimit" type="number" step="0.01" min="0" placeholder="Limite mensal (opcional)" className={inputClass} />
-          <button type="submit" className="bg-gold text-black-deep font-semibold rounded-lg px-4 py-2 hover:bg-gold-light transition-colors">
-            Adicionar
-          </button>
-        </form>
-      </section>
+      {aba === "envelope" && (
+        <div className="flex flex-col gap-6">
+          <section className="border border-gold-dark/40 bg-black-soft rounded-xl p-5">
+            <h2 className="font-display text-lg text-gold mb-2">Sistema de Envelopes</h2>
+            <p className="text-gray-400 text-sm mb-4">
+              No fechamento mensal, o lucro líquido é dividido automaticamente entre estes três percentuais. A soma precisa ser exatamente 100%.
+            </p>
+            <form onSubmit={handleEnvelopes} className="flex flex-col gap-3">
+              <div>
+                <label className="text-sm text-gray-300 block mb-1">Operacional (%)</label>
+                <input name="envelopeOperacionalPct" type="number" step="0.01" min="0" max="100" defaultValue={envelopes.operacional} required className={inputClass} />
+              </div>
+              <div>
+                <label className="text-sm text-gray-300 block mb-1">Pró-labore — seu salário (%)</label>
+                <input name="envelopeProLaborePct" type="number" step="0.01" min="0" max="100" defaultValue={envelopes.proLabore} required className={inputClass} />
+              </div>
+              <div>
+                <label className="text-sm text-gray-300 block mb-1">Reserva (%)</label>
+                <input name="envelopeReservaPct" type="number" step="0.01" min="0" max="100" defaultValue={envelopes.reserva} required className={inputClass} />
+              </div>
+              <button type="submit" className="bg-gold text-black-deep font-semibold rounded-lg px-4 py-2 hover:bg-gold-light transition-colors">
+                Salvar Percentuais
+              </button>
+            </form>
+          </section>
 
-      <section className="border border-gold-dark/40 bg-black-soft rounded-xl p-5">
-        <h2 className="font-display text-lg text-gold mb-4">Serviços, Preços e Descontos</h2>
-        <div className="flex flex-col gap-4">
-          {servicos.filter((s) => s.active).map((s) => (
-            <ServicoLinha key={s.id} servico={s} />
-          ))}
+          <section className="border border-gold-dark/40 bg-black-soft rounded-xl p-5">
+            <h2 className="font-display text-lg text-gold mb-4">Metas (opcional)</h2>
+            <form onSubmit={handleMetas} className="flex flex-col gap-3">
+              <div>
+                <label className="text-sm text-gray-300 block mb-1">Meta de Pró-labore (R$)</label>
+                <input name="proLaboreMeta" type="number" step="0.01" min="0" defaultValue={metas.proLabore ?? ""} placeholder="Sem meta definida" className={inputClass} />
+              </div>
+              <div>
+                <label className="text-sm text-gray-300 block mb-1">Meta de Reserva (R$)</label>
+                <input name="reservaMeta" type="number" step="0.01" min="0" defaultValue={metas.reserva ?? ""} placeholder="Sem meta definida" className={inputClass} />
+              </div>
+              <button type="submit" className="bg-gold text-black-deep font-semibold rounded-lg px-4 py-2 hover:bg-gold-light transition-colors">
+                Salvar Metas
+              </button>
+            </form>
+          </section>
         </div>
+      )}
 
-        <h3 className="font-display text-base text-gold mt-6 mb-3">Adicionar novo serviço</h3>
-        <form onSubmit={handleNovoServico} className="flex flex-col sm:flex-row gap-2">
-          <input name="name" placeholder="Nome do serviço" required className={inputClass} />
-          <input name="price" type="number" step="0.01" min="0" placeholder="Preço (opcional)" className={inputClass} />
-          <button type="submit" className="bg-gold text-black-deep font-semibold rounded-lg px-4 py-2 hover:bg-gold-light transition-colors whitespace-nowrap">
-            Adicionar
-          </button>
-        </form>
-      </section>
+      {aba === "categorias" && (
+        <div className="flex flex-col gap-6">
+          <section className="border border-gold-dark/40 bg-black-soft rounded-xl p-5">
+            <h2 className="font-display text-lg text-gold mb-4">Categorias de Despesa</h2>
+            <div className="flex flex-col gap-3">
+              {categorias.filter((c) => c.active).map((c) => (
+                <CategoriaLinha key={c.id} categoria={c} />
+              ))}
+            </div>
+
+            <h3 className="font-display text-base text-gold mt-6 mb-3">Adicionar nova categoria</h3>
+            <form onSubmit={handleNovaCategoria} className="flex flex-col gap-2">
+              <input name="name" placeholder="Nome da categoria" required className={inputClass} />
+              <select name="type" required className={inputClass}>
+                <option value="FIXED">Fixa</option>
+                <option value="VARIABLE">Variável</option>
+                <option value="INVESTMENT">Investimento</option>
+                <option value="MARKETING">Marketing</option>
+              </select>
+              <input name="budgetLimit" type="number" step="0.01" min="0" placeholder="Limite mensal (opcional)" className={inputClass} />
+              <button type="submit" className="bg-gold text-black-deep font-semibold rounded-lg px-4 py-2 hover:bg-gold-light transition-colors">
+                Adicionar
+              </button>
+            </form>
+          </section>
+
+          <section className="border border-gold-dark/40 bg-black-soft rounded-xl p-5">
+            <h2 className="font-display text-lg text-gold mb-4">Serviços, Preços e Descontos</h2>
+            <div className="flex flex-col gap-4">
+              {servicos.filter((s) => s.active).map((s) => (
+                <ServicoLinha key={s.id} servico={s} />
+              ))}
+            </div>
+
+            <h3 className="font-display text-base text-gold mt-6 mb-3">Adicionar novo serviço</h3>
+            <form onSubmit={handleNovoServico} className="flex flex-col sm:flex-row gap-2">
+              <input name="name" placeholder="Nome do serviço" required className={inputClass} />
+              <input name="price" type="number" step="0.01" min="0" placeholder="Preço (opcional)" className={inputClass} />
+              <button type="submit" className="bg-gold text-black-deep font-semibold rounded-lg px-4 py-2 hover:bg-gold-light transition-colors whitespace-nowrap">
+                Adicionar
+              </button>
+            </form>
+          </section>
+        </div>
+      )}
 
       {mensagem && <p className="text-gold text-sm">{mensagem}</p>}
     </div>
@@ -244,7 +275,6 @@ function CategoriaLinha({ categoria }: { categoria: Categoria }) {
 
 function ServicoLinha({ servico }: { servico: Servico }) {
   const [mostrarDesconto, setMostrarDesconto] = useState(false);
-  const [dataValidade, setDataValidade] = useState("");
   const descontoAtivo =
     servico.discountPercentage != null &&
     (!servico.discountValidUntil || new Date(servico.discountValidUntil) >= new Date());
@@ -295,8 +325,7 @@ function ServicoLinha({ servico }: { servico: Servico }) {
           }}
         >
           <input name="discountPercentage" type="number" step="0.01" min="1" max="100" placeholder="% de desconto" required className={inputClass} />
-          <input type="hidden" name="discountValidUntil" value={dataValidade} />
-          <SeletorDataPopover valor={dataValidade} onChange={setDataValidade} placeholder="Válido até (opcional)" />
+          <input name="discountValidUntil" type="date" className={inputClass} />
           <button type="submit" className="bg-gold text-black-deep font-semibold rounded-lg px-4 hover:bg-gold-light transition-colors whitespace-nowrap">
             Aplicar
           </button>

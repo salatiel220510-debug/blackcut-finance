@@ -1,42 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { calcularFechamento } from "@/lib/fechamentoMensal";
-
-const OFFSET_BRASIL_HORAS = 3;
-
-export function limitesDoDiaEspecifico(dataString: string) {
-  const [ano, mes, dia] = dataString.split("-").map(Number);
-  const inicioBrasil = Date.UTC(ano, mes - 1, dia, 0, 0, 0, 0);
-  const fimBrasil = Date.UTC(ano, mes - 1, dia, 23, 59, 59, 999);
-  return {
-    inicio: new Date(inicioBrasil + OFFSET_BRASIL_HORAS * 60 * 60 * 1000),
-    fim: new Date(fimBrasil + OFFSET_BRASIL_HORAS * 60 * 60 * 1000),
-  };
-}
-
-export function hojeBrasilString() {
-  const brasil = new Date(Date.now() - OFFSET_BRASIL_HORAS * 60 * 60 * 1000);
-  const ano = brasil.getUTCFullYear();
-  const mes = String(brasil.getUTCMonth() + 1).padStart(2, "0");
-  const dia = String(brasil.getUTCDate()).padStart(2, "0");
-  return `${ano}-${mes}-${dia}`;
-}
-
-export function diaBrasilDeData(data: Date): string {
-  const brasil = new Date(data.getTime() - OFFSET_BRASIL_HORAS * 60 * 60 * 1000);
-  const ano = brasil.getUTCFullYear();
-  const mes = String(brasil.getUTCMonth() + 1).padStart(2, "0");
-  const dia = String(brasil.getUTCDate()).padStart(2, "0");
-  return `${ano}-${mes}-${dia}`;
-}
-
-export function limitesDoMesEspecifico(ano: number, mesIndex0: number) {
-  const inicioBrasil = Date.UTC(ano, mesIndex0, 1, 0, 0, 0, 0);
-  const fimBrasil = Date.UTC(ano, mesIndex0 + 1, 1, 0, 0, 0, 0);
-  return {
-    inicio: new Date(inicioBrasil + OFFSET_BRASIL_HORAS * 60 * 60 * 1000),
-    fimExclusivo: new Date(fimBrasil + OFFSET_BRASIL_HORAS * 60 * 60 * 1000),
-  };
-}
+import { limitesDoMesEspecifico } from "@/lib/datasBrasil";
 
 export async function despesasPorCategoriaMes(ano: number, mesIndex0: number) {
   const { inicio, fimExclusivo } = limitesDoMesEspecifico(ano, mesIndex0);
@@ -61,34 +25,13 @@ export async function evolucaoUltimosMeses(quantidade: number) {
 
   for (let i = quantidade - 1; i >= 0; i--) {
     const data = new Date(Date.UTC(agora.getUTCFullYear(), agora.getUTCMonth() - i, 1));
-    const ehMesAtual = i === 0;
-
-    let faturamento = 0, despesas = 0, lucro = 0;
-
-    if (!ehMesAtual) {
-      const fechamento = await prisma.monthlyClosure.findUnique({ where: { mes: data } });
-      if (fechamento) {
-        faturamento = Number(fechamento.faturamentoBruto);
-        despesas = Number(fechamento.totalDespesas);
-        lucro = Number(fechamento.lucroLiquido);
-      } else {
-        const calc = await calcularFechamento(data.getUTCFullYear(), data.getUTCMonth());
-        faturamento = calc.faturamentoBruto;
-        despesas = calc.totalDespesas;
-        lucro = calc.lucroLiquido;
-      }
-    } else {
-      const calc = await calcularFechamento(data.getUTCFullYear(), data.getUTCMonth());
-      faturamento = calc.faturamentoBruto;
-      despesas = calc.totalDespesas;
-      lucro = calc.lucroLiquido;
-    }
+    const calc = await calcularFechamento(data.getUTCFullYear(), data.getUTCMonth());
 
     resultado.push({
       mes: data.toLocaleDateString("pt-BR", { month: "short", year: "2-digit", timeZone: "UTC" }),
-      faturamento,
-      despesas,
-      lucro,
+      faturamento: calc.faturamentoBruto,
+      despesas: calc.totalDespesas,
+      lucro: calc.lucroLiquido,
     });
   }
 
@@ -124,4 +67,20 @@ export async function envelopesAcumulados() {
     proLabore: Number(agg._sum.envelopeProLabore ?? 0),
     reserva: Number(agg._sum.envelopeReserva ?? 0),
   };
+}
+
+export async function fundosMensais(quantidade: number) {
+  const agora = new Date();
+  const resultado: { mes: string; fundos: number }[] = [];
+
+  for (let i = quantidade - 1; i >= 0; i--) {
+    const data = new Date(Date.UTC(agora.getUTCFullYear(), agora.getUTCMonth() - i, 1));
+    const calc = await calcularFechamento(data.getUTCFullYear(), data.getUTCMonth());
+    resultado.push({
+      mes: data.toLocaleDateString("pt-BR", { month: "short", year: "2-digit", timeZone: "UTC" }),
+      fundos: calc.lucroLiquido,
+    });
+  }
+
+  return resultado;
 }
