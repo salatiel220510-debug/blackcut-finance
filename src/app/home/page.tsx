@@ -65,7 +65,7 @@ export default async function HomePage() {
 
   const agora = new Date();
 
-  const [previaMes, entradasTotalAgg, saidasTotalAgg, comissoesAgg, pendentesCount, serie, evolucaoMeses] = await Promise.all([
+  const [previaMes, entradasTotalAgg, saidasTotalAgg, comissoesAgg, settings, pendentesCount, serie, evolucaoMeses] = await Promise.all([
     calcularFechamento(agora.getUTCFullYear(), agora.getUTCMonth()),
     prisma.transaction.aggregate({ where: { type: "INCOME", deletedAt: null }, _sum: { amount: true } }),
     prisma.transaction.aggregate({ where: { type: "EXPENSE", deletedAt: null }, _sum: { amount: true } }),
@@ -73,6 +73,7 @@ export default async function HomePage() {
       where: { type: "INCOME", deletedAt: null, commissionAmount: { not: null }, commissionSettled: false },
       _sum: { commissionAmount: true },
     }),
+    prisma.settings.findUnique({ where: { id: 1 } }),
     prisma.user.count({ where: { status: "PENDING" } }),
     serieUltimosDias(14),
     evolucaoUltimosMeses(6),
@@ -84,7 +85,9 @@ export default async function HomePage() {
 
   const totalEntradasGeral = Number(entradasTotalAgg._sum.amount ?? 0);
   const totalSaidasGeral = Number(saidasTotalAgg._sum.amount ?? 0);
-  const fundos = totalEntradasGeral - totalSaidasGeral - totalComissoesPendentes;
+  const fundosAcumulados = totalEntradasGeral - totalSaidasGeral - totalComissoesPendentes;
+  const saldoBancario = settings ? Number(settings.saldoBancario) : 0;
+  const diferenca = fundosAcumulados - saldoBancario;
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -93,11 +96,33 @@ export default async function HomePage() {
         <h1 className="font-display text-2xl text-gold mb-1">Bem-vindo, {nome}</h1>
         <p className="text-gray-400 mb-8">Visão geral do negócio — mês atual.</p>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-10">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
           <Card titulo="Entradas (mês)" valor={formatar(entradasMes)} />
           <Card titulo="Saídas (mês)" valor={formatar(saidasMes)} />
           <Card titulo="Comissões pendentes" valor={formatar(totalComissoesPendentes)} />
-          <Card titulo="Fundos da Barbearia" valor={formatar(fundos)} destaque />
+          <Card titulo="Fundos da Barbearia" valor={formatar(fundosAcumulados)} destaque />
+        </div>
+
+        <div className="border border-gold-dark/40 bg-black-soft rounded-xl p-4 mb-8">
+          <h2 className="font-display text-lg text-gold mb-3">Fundos x Saldo Bancário</h2>
+          <table className="w-full text-sm">
+            <tbody>
+              <tr className="border-b border-gold-dark/20">
+                <td className="py-2 text-gray-400">Fundos acumulados (calculado)</td>
+                <td className="py-2 text-right font-bold text-gold">{formatar(fundosAcumulados)}</td>
+              </tr>
+              <tr className="border-b border-gold-dark/20">
+                <td className="py-2 text-gray-400">Saldo bancário informado</td>
+                <td className="py-2 text-right font-bold text-white">{formatar(saldoBancario)}</td>
+              </tr>
+              <tr>
+                <td className="py-2 text-gray-400">Diferença</td>
+                <td className={`py-2 text-right font-bold ${Math.abs(diferenca) < 0.01 ? "text-green-400" : "text-red-400"}`}>
+                  {formatar(diferenca)}
+                </td>
+              </tr>
+            </tbody>
+          </table>
         </div>
 
         {pendentesCount > 0 && (

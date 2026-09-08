@@ -7,6 +7,7 @@ import ListaTransacoesDia, { TransacaoView } from "@/components/ListaTransacoesD
 import BotaoFecharBarbearia from "@/components/BotaoFecharBarbearia";
 import { agruparPorComanda } from "@/lib/agruparTransacoes";
 import { limitesDoDiaEspecifico, hojeBrasilString } from "@/lib/datasBrasil";
+import { calcularFechamento } from "@/lib/fechamentoMensal";
 
 export default async function CaixaPage({ searchParams }: { searchParams: Promise<{ data?: string }> }) {
   const session = await auth();
@@ -22,7 +23,10 @@ export default async function CaixaPage({ searchParams }: { searchParams: Promis
   const [anoSel, mesSel, diaSel] = dataSelecionada.split("-").map(Number);
   const dataChaveFechamento = new Date(Date.UTC(anoSel, mesSel - 1, diaSel));
 
-  const [entradasAgg, saidasAgg, comissoesAgg, settings, transacoesDoDia, fechamentoDoDia] = await Promise.all([
+  const agora = new Date();
+
+  const [previaMes, entradasTotalAgg, saidasTotalAgg, comissoesAgg, settings, transacoesDoDia, fechamentoDoDia] = await Promise.all([
+    calcularFechamento(agora.getUTCFullYear(), agora.getUTCMonth()),
     prisma.transaction.aggregate({ where: { type: "INCOME", deletedAt: null }, _sum: { amount: true } }),
     prisma.transaction.aggregate({ where: { type: "EXPENSE", deletedAt: null }, _sum: { amount: true } }),
     prisma.transaction.aggregate({
@@ -40,12 +44,16 @@ export default async function CaixaPage({ searchParams }: { searchParams: Promis
 
   const diaFechado = !!fechamentoDoDia;
 
-  const totalEntradas = Number(entradasAgg._sum.amount ?? 0);
-  const totalSaidas = Number(saidasAgg._sum.amount ?? 0);
+  const entradasMes = previaMes.faturamentoBruto;
+  const saidasMes = previaMes.totalDespesas;
+  const saldoMes = entradasMes - saidasMes;
   const totalComissoes = Number(comissoesAgg._sum.commissionAmount ?? 0);
-  const saldo = totalEntradas - totalSaidas;
-  const fundosAcumulados = totalEntradas - totalSaidas - totalComissoes;
+
+  const totalEntradasGeral = Number(entradasTotalAgg._sum.amount ?? 0);
+  const totalSaidasGeral = Number(saidasTotalAgg._sum.amount ?? 0);
+  const fundosAcumulados = totalEntradasGeral - totalSaidasGeral - totalComissoes;
   const saldoBancario = settings ? Number(settings.saldoBancario) : 0;
+  const diferenca = fundosAcumulados - saldoBancario;
 
   const paraView = (t: (typeof transacoesDoDia)[number]): TransacaoView => ({
     id: t.id,
@@ -80,12 +88,13 @@ export default async function CaixaPage({ searchParams }: { searchParams: Promis
   return (
     <div className="min-h-screen flex flex-col">
       <main className="flex-1 max-w-4xl w-full mx-auto px-4 py-8">
-        <h1 className="font-display text-2xl text-gold mb-6">Fluxo de Caixa</h1>
+        <h1 className="font-display text-2xl text-gold mb-1">Fluxo de Caixa</h1>
+        <p className="text-gray-400 text-sm mb-6">Cartões abaixo referem-se ao mês atual.</p>
 
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
-          <Card titulo="Entradas (total)" valor={formatar(totalEntradas)} />
-          <Card titulo="Saídas (total)" valor={formatar(totalSaidas)} />
-          <Card titulo="Saldo" valor={formatar(saldo)} destaque={saldo >= 0} negativo={saldo < 0} />
+          <Card titulo="Entradas (mês)" valor={formatar(entradasMes)} />
+          <Card titulo="Saídas (mês)" valor={formatar(saidasMes)} />
+          <Card titulo="Saldo (mês)" valor={formatar(saldoMes)} destaque={saldoMes >= 0} negativo={saldoMes < 0} />
           <Card titulo="Comissões pendentes" valor={formatar(totalComissoes)} />
         </div>
 
@@ -97,12 +106,21 @@ export default async function CaixaPage({ searchParams }: { searchParams: Promis
                 <td className="py-2 text-gray-400">Fundos acumulados (calculado)</td>
                 <td className="py-2 text-right font-bold text-gold">{formatar(fundosAcumulados)}</td>
               </tr>
-              <tr>
+              <tr className="border-b border-gold-dark/20">
                 <td className="py-2 text-gray-400">Saldo bancário informado</td>
                 <td className="py-2 text-right font-bold text-white">{formatar(saldoBancario)}</td>
               </tr>
+              <tr>
+                <td className="py-2 text-gray-400">Diferença</td>
+                <td className={`py-2 text-right font-bold ${Math.abs(diferenca) < 0.01 ? "text-green-400" : "text-red-400"}`}>
+                  {formatar(diferenca)}
+                </td>
+              </tr>
             </tbody>
           </table>
+          <p className="text-xs text-gray-500 mt-2">
+            Diferença perto de zero indica que o valor calculado bate com o que está informado no banco. Atualize o saldo bancário em Configurações sempre que conferir o extrato real.
+          </p>
         </div>
 
         <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
@@ -116,6 +134,7 @@ export default async function CaixaPage({ searchParams }: { searchParams: Promis
               totalComissoes={totalComissoesDia}
               servicos={servicosDoDiaRaw.map((s) => ({ category: s.category, amount: s.amount, barberNome: s.barberNome }))}
               gastos={gastosDoDiaRaw.map((g) => ({ category: g.category, amount: g.amount }))}
+              jaFechado={diaFechado}
             />
           </div>
         </div>
