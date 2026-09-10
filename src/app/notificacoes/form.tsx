@@ -15,7 +15,7 @@ export default function FormNotificacao() {
     if (resultado?.erro) {
       setMensagem(resultado.erro);
     } else {
-      setMensagem("Notificação enviada a todos!");
+      setMensagem(resultado?.demo ? "Simulado (Modo Demo ativo)!" : "Notificação enviada a todos!");
       (e.target as HTMLFormElement).reset();
       setTimeout(() => window.location.reload(), 1000);
     }
@@ -28,6 +28,11 @@ export default function FormNotificacao() {
         className="bg-black-deep border border-gold-dark/40 rounded-lg px-3 py-2 text-white" />
       <textarea name="body" placeholder="Mensagem" required maxLength={500} rows={3}
         className="bg-black-deep border border-gold-dark/40 rounded-lg px-3 py-2 text-white" />
+      <div>
+        <label className="text-sm text-gray-400 block mb-1">Link (opcional)</label>
+        <input name="linkUrl" type="url" placeholder="https://..." className="bg-black-deep border border-gold-dark/40 rounded-lg px-3 py-2 text-white w-full mb-2" />
+        <input name="linkLabel" placeholder="Texto do botão (ex: Ver documento)" maxLength={80} className="bg-black-deep border border-gold-dark/40 rounded-lg px-3 py-2 text-white w-full" />
+      </div>
       <button type="submit" disabled={carregando}
         className="bg-gold text-black-deep font-semibold rounded-lg py-2 hover:bg-gold-light transition-colors disabled:opacity-50">
         {carregando ? "Enviando..." : "Enviar para todos"}

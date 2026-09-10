@@ -108,7 +108,7 @@ export const atualizarBudgetSchema = z.object({
 
 export const comandaSchema = z.object({
   barberId: z.string().trim().optional(),
-  paymentMethod: z.enum(["DINHEIRO", "PIX", "CARTAO_DEBITO", "CARTAO_CREDITO"]),
+  paymentMethod: z.enum(["DINHEIRO", "PIX", "CARTAO_DEBITO", "CARTAO_CREDITO"]).optional(),
   clienteNome: z.string().trim().max(100).optional(),
   observacao: z.string().trim().max(500).optional(),
   itens: z
@@ -118,6 +118,7 @@ export const comandaSchema = z.object({
         category: z.string().trim().min(1, "Informe a categoria do item."),
         amount: z.number().positive("O valor do item precisa ser maior que zero."),
         expenseCategoryId: z.string().trim().optional(),
+        descricao: z.string().trim().max(200).optional(),
       })
     )
     .min(1, "Adicione pelo menos um item à comanda."),
@@ -130,4 +131,18 @@ export const liquidarComissaoSchema = z.object({
 export const notificacaoSchema = z.object({
   title: z.string().trim().min(1, "Informe um título.").max(100, "Título muito longo."),
   body: z.string().trim().min(1, "Informe a mensagem.").max(500, "Mensagem muito longa."),
+  linkUrl: z.string().trim().url("Link inválido.").optional().or(z.literal("")),
+  linkLabel: z.string().trim().max(80).optional(),
+});
+
+export const taxasSchema = z.object({
+  taxaPix: numeroPtBR().refine((v) => v >= 0 && v <= 100, "Percentual inválido."),
+  taxaDebito: numeroPtBR().refine((v) => v >= 0 && v <= 100, "Percentual inválido."),
+  taxaCredito: numeroPtBR().refine((v) => v >= 0 && v <= 100, "Percentual inválido."),
+});
+
+export const relatoSchema = z.object({
+  type: z.enum(["PROBLEMA", "MELHORIA", "OUTRO"]),
+  title: z.string().trim().min(1, "Informe um título.").max(150, "Título muito longo."),
+  description: z.string().trim().min(1, "Descreva o relato.").max(1000, "Descrição muito longa."),
 });

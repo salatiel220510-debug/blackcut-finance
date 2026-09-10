@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import Footer from "@/components/Footer";
 import FormNotificacao from "./form";
+import BotaoExcluirNotificacao from "@/components/BotaoExcluirNotificacao";
 
 export default async function NotificacoesPage() {
   const session = await auth();
@@ -31,8 +32,23 @@ export default async function NotificacoesPage() {
                 <strong className="text-gold">{n.title}</strong>
                 <span className="text-gray-500 text-xs">{new Date(n.createdAt).toLocaleString("pt-BR")}</span>
               </div>
-              <p className="text-white text-sm">{n.body}</p>
-              <p className="text-gray-500 text-xs mt-1">por {n.createdBy.name}</p>
+              <p className="text-white text-sm mb-2">{n.body}</p>
+
+              {n.linkUrl && (
+                <a
+                  href={n.linkUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-block bg-gold/10 border border-gold text-gold text-sm font-semibold rounded-lg px-3 py-1.5 mb-2 hover:bg-gold/20 transition-colors"
+                >
+                  🔗 {n.linkLabel || "Abrir link"}
+                </a>
+              )}
+
+              <div className="flex items-center justify-between">
+                <p className="text-gray-500 text-xs">por {n.createdBy.name}</p>
+                {role === "OWNER" && <BotaoExcluirNotificacao id={n.id} />}
+              </div>
             </div>
           ))}
         </div>

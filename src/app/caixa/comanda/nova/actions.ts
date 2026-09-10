@@ -7,6 +7,7 @@ import { after } from "next/server";
 import { enviarPushParaDonos } from "@/lib/push";
 import { verificarAlertaOrcamento } from "@/lib/alertasOrcamento";
 import { comandaSchema } from "@/lib/schemas";
+import { estaEmModoDemo } from "@/lib/demoGuard";
 
 export async function registrarComanda(dadosBrutos: unknown) {
   const session = await auth();
@@ -29,6 +30,10 @@ export async function registrarComanda(dadosBrutos: unknown) {
     return { erro: "Barbeiros só podem registrar serviços, não despesas." };
   }
 
+  if (temItemIncome && !paymentMethod) {
+    return { erro: "Selecione a forma de pagamento." };
+  }
+
   let barberId: string | null = null;
   if (temItemIncome) {
     if (role === "BARBER") {
@@ -37,6 +42,10 @@ export async function registrarComanda(dadosBrutos: unknown) {
       if (!barberIdForm) return { erro: "Selecione o barbeiro responsável pelos serviços." };
       barberId = barberIdForm;
     }
+  }
+
+  if (await estaEmModoDemo()) {
+    return { sucesso: true, demo: true };
   }
 
   const settings = temItemIncome ? await prisma.settings.findUnique({ where: { id: 1 } }) : null;
@@ -63,10 +72,11 @@ export async function registrarComanda(dadosBrutos: unknown) {
         : {
             type: "EXPENSE" as const,
             category: item.category,
+            description: item.descricao || null,
             amount: item.amount,
             expenseCategoryId: item.expenseCategoryId || null,
             comandaId,
-            paymentMethod,
+            paymentMethod: paymentMethod || null,
             observacao: observacao || null,
             createdById: userId,
           }

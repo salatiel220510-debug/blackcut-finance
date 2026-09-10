@@ -103,8 +103,8 @@ export default async function CaixaPage({ searchParams }: { searchParams: Promis
           <table className="w-full text-sm">
             <tbody>
               <tr className="border-b border-gold-dark/20">
-                <td className="py-2 text-gray-400">Fundos acumulados (calculado)</td>
-                <td className="py-2 text-right font-bold text-gold">{formatar(fundosAcumulados)}</td>
+                <td className="py-2 text-gray-400">Serviços Registrados Mensalmente</td>
+                <td className="py-2 text-right font-bold text-gold">{formatar(entradasMes - saidasMes)}</td>
               </tr>
               <tr className="border-b border-gold-dark/20">
                 <td className="py-2 text-gray-400">Saldo bancário informado</td>

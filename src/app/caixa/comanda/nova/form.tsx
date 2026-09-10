@@ -2,11 +2,12 @@
 import { useState } from "react";
 import { registrarComanda } from "./actions";
 import CartaoFidelidade from "@/components/CartaoFidelidade";
+import BarraOrcamentoCategoria from "@/components/BarraOrcamentoCategoria";
 
 type Barbeiro = { id: string; name: string };
 type Servico = { name: string; price: number | null; discountedPrice: number | null; discountPercentage: number | null };
 type CategoriaDespesa = { id: string; name: string };
-type Item = { tipo: "INCOME" | "EXPENSE"; category: string; amount: number; expenseCategoryId?: string };
+type Item = { tipo: "INCOME" | "EXPENSE"; category: string; amount: number; expenseCategoryId?: string; descricao?: string };
 
 const METODOS_PAGAMENTO = [
   { valor: "DINHEIRO", label: "Dinheiro" },
@@ -33,6 +34,7 @@ export default function FormComanda({
   const [categoriaServico, setCategoriaServico] = useState(servicos[0]?.name ?? "");
   const [categoriaDespesaId, setCategoriaDespesaId] = useState(categoriasDespesa[0]?.id ?? "");
   const [valorItem, setValorItem] = useState((servicos[0]?.discountedPrice ?? servicos[0]?.price)?.toString() ?? "");
+  const [nomeDespesa, setNomeDespesa] = useState("");
   const [barberId, setBarberId] = useState("");
   const [paymentMethod, setPaymentMethod] = useState<typeof METODOS_PAGAMENTO[number]["valor"]>("DINHEIRO");
   const [clienteNome, setClienteNome] = useState("");
@@ -42,7 +44,8 @@ export default function FormComanda({
   const [carregando, setCarregando] = useState(false);
 
   const total = itens.reduce((s, i) => s + i.amount, 0);
-  const temIncome = itens.some((i) => i.tipo === "INCOME");
+  const temIncomeNaLista = itens.some((i) => i.tipo === "INCOME");
+  const mostrarFormaPagamento = tipoItemAtual === "INCOME" || temIncomeNaLista;
   const formatar = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
   function handleServicoChange(nome: string) {
@@ -65,7 +68,8 @@ export default function FormComanda({
     } else {
       const categoria = categoriasDespesa.find((c) => c.id === categoriaDespesaId);
       if (!categoria) { setMensagem("Selecione uma categoria de despesa."); return; }
-      setItens([...itens, { tipo: "EXPENSE", category: categoria.name, amount: valorNumerico, expenseCategoryId: categoria.id }]);
+      setItens([...itens, { tipo: "EXPENSE", category: categoria.name, amount: valorNumerico, expenseCategoryId: categoria.id, descricao: nomeDespesa || undefined }]);
+      setNomeDespesa("");
     }
     setMensagem("");
   }
@@ -76,7 +80,8 @@ export default function FormComanda({
 
   async function handleFechar() {
     if (itens.length === 0) { setMensagem("Adicione pelo menos um item à comanda."); return; }
-    if (role === "OWNER" && temIncome && !barberId) { setMensagem("Selecione o barbeiro responsável pelos serviços."); return; }
+    if (role === "OWNER" && temIncomeNaLista && !barberId) { setMensagem("Selecione o barbeiro responsável pelos serviços."); return; }
+    if (temIncomeNaLista && !paymentMethod) { setMensagem("Selecione a forma de pagamento."); return; }
 
     setCarregando(true);
     setMensagem("");
@@ -84,10 +89,10 @@ export default function FormComanda({
     try {
       const resultado = await registrarComanda({
         barberId: role === "OWNER" ? barberId : undefined,
-        paymentMethod,
+        paymentMethod: temIncomeNaLista ? paymentMethod : undefined,
         clienteNome: clienteNome || undefined,
         observacao: observacao || undefined,
-        itens: itens.map((i) => ({ tipo: i.tipo, category: i.category, amount: i.amount, expenseCategoryId: i.expenseCategoryId })),
+        itens: itens.map((i) => ({ tipo: i.tipo, category: i.category, amount: i.amount, expenseCategoryId: i.expenseCategoryId, descricao: i.descricao })),
       });
 
       if (resultado?.erro) {
@@ -95,7 +100,7 @@ export default function FormComanda({
         setSucesso(false);
       } else {
         setSucesso(true);
-        setMensagem("Comanda fechada com sucesso!");
+        setMensagem(resultado?.demo ? "Simulado (Modo Demo ativo)!" : "Comanda fechada com sucesso!");
         setTimeout(() => { window.location.href = "/caixa"; }, 800);
       }
     } catch (err) {
@@ -109,44 +114,21 @@ export default function FormComanda({
 
   return (
     <div className="flex flex-col gap-4 border border-gold-dark/40 bg-black-soft rounded-xl p-6">
-      {temIncome && role === "OWNER" && (
-        <div>
-          <label className="text-sm text-gray-400 block mb-1">Barbeiro (para os serviços)</label>
-          <select value={barberId} onChange={(e) => setBarberId(e.target.value)} className={inputClass}>
-            <option value="">Selecione...</option>
-            {barbeiros.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
-          </select>
+      {role === "OWNER" && (
+        <div className="flex gap-2">
+          <button type="button" onClick={() => setTipoItemAtual("INCOME")}
+            className={`flex-1 rounded-lg px-3 py-1.5 text-sm font-semibold border ${tipoItemAtual === "INCOME" ? "bg-gold text-black-deep border-gold" : "bg-black-deep text-gray-300 border-gold-dark/40"}`}>
+            Serviço
+          </button>
+          <button type="button" onClick={() => setTipoItemAtual("EXPENSE")}
+            className={`flex-1 rounded-lg px-3 py-1.5 text-sm font-semibold border ${tipoItemAtual === "EXPENSE" ? "bg-gold text-black-deep border-gold" : "bg-black-deep text-gray-300 border-gold-dark/40"}`}>
+            Despesa
+          </button>
         </div>
       )}
 
       <div>
-        <label className="text-sm text-gray-400 block mb-1">Cliente</label>
-        <input value={clienteNome} onChange={(e) => setClienteNome(e.target.value)} placeholder="Nome do cliente" className={inputClass} />
-      </div>
-
-      <div>
-        <label className="text-sm text-gray-400 block mb-1">Observação (opcional)</label>
-        <textarea value={observacao} onChange={(e) => setObservacao(e.target.value)} rows={2} placeholder="Alguma observação sobre o atendimento" className={inputClass} />
-      </div>
-
-      <CartaoFidelidade clienteNome={clienteNome} />
-
-      <div className="border-t border-gold-dark/20 pt-4">
-        <label className="text-sm text-gray-400 block mb-2">Adicionar item</label>
-
-        {role === "OWNER" && (
-          <div className="flex gap-2 mb-2">
-            <button type="button" onClick={() => { setTipoItemAtual("INCOME"); handleServicoChange(servicos[0]?.name ?? ""); }}
-              className={`flex-1 rounded-lg px-3 py-1.5 text-sm font-semibold border ${tipoItemAtual === "INCOME" ? "bg-gold text-black-deep border-gold" : "bg-black-deep text-gray-300 border-gold-dark/40"}`}>
-              Serviço
-            </button>
-            <button type="button" onClick={() => { setTipoItemAtual("EXPENSE"); setValorItem(""); }}
-              className={`flex-1 rounded-lg px-3 py-1.5 text-sm font-semibold border ${tipoItemAtual === "EXPENSE" ? "bg-gold text-black-deep border-gold" : "bg-black-deep text-gray-300 border-gold-dark/40"}`}>
-              Despesa
-            </button>
-          </div>
-        )}
-
+        <label className="text-sm text-gray-400 block mb-1">Adicionar item</label>
         <div className="flex flex-col sm:flex-row gap-2">
           {tipoItemAtual === "INCOME" ? (
             <select value={categoriaServico} onChange={(e) => handleServicoChange(e.target.value)} className={inputClass}>
@@ -159,9 +141,44 @@ export default function FormComanda({
             </select>
           )}
           <input type="number" step="0.01" min="0.01" value={valorItem} onChange={(e) => setValorItem(e.target.value)} placeholder="Valor" className={inputClass} />
-          <button type="button" onClick={adicionarItem} className="bg-gold-dark text-black-deep font-semibold rounded-lg px-4 py-2 hover:bg-gold transition-colors whitespace-nowrap">+ Adicionar</button>
+          <button type="button" onClick={adicionarItem} className="bg-gold-dark text-black-deep font-semibold rounded-lg px-4 py-2 hover:bg-gold transition-colors whitespace-nowrap">
+            + Adicionar
+          </button>
         </div>
       </div>
+
+      {tipoItemAtual === "INCOME" && role === "OWNER" && (
+        <div>
+          <label className="text-sm text-gray-400 block mb-1">Barbeiro (para os serviços)</label>
+          <select value={barberId} onChange={(e) => setBarberId(e.target.value)} className={inputClass}>
+            <option value="">Selecione...</option>
+            {barbeiros.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
+          </select>
+        </div>
+      )}
+
+      <div>
+        <label className="text-sm text-gray-400 block mb-1">
+          {tipoItemAtual === "EXPENSE" ? "Nome da despesa" : "Cliente"}
+        </label>
+        <input
+          value={tipoItemAtual === "EXPENSE" ? nomeDespesa : clienteNome}
+          onChange={(e) => (tipoItemAtual === "EXPENSE" ? setNomeDespesa(e.target.value) : setClienteNome(e.target.value))}
+          placeholder={tipoItemAtual === "EXPENSE" ? "Ex: Compra de toalhas" : "Nome do cliente"}
+          className={inputClass}
+        />
+      </div>
+
+      {tipoItemAtual === "EXPENSE" ? (
+        <BarraOrcamentoCategoria categoriaId={categoriaDespesaId} />
+      ) : (
+        <div>
+          <label className="text-sm text-gray-400 block mb-1">Observação (opcional)</label>
+          <textarea value={observacao} onChange={(e) => setObservacao(e.target.value)} rows={2} placeholder="Alguma observação sobre o atendimento" className={inputClass} />
+        </div>
+      )}
+
+      {tipoItemAtual === "INCOME" && <CartaoFidelidade clienteNome={clienteNome} />}
 
       {itens.length > 0 && (
         <div className="flex flex-col gap-2">
@@ -171,7 +188,7 @@ export default function FormComanda({
                 <span className={`mr-1.5 text-[10px] px-1.5 py-0.5 rounded-full ${item.tipo === "INCOME" ? "bg-green-400/20 text-green-400" : "bg-red-400/20 text-red-400"}`}>
                   {item.tipo === "INCOME" ? "Serviço" : "Despesa"}
                 </span>
-                {item.category} — {formatar(item.amount)}
+                {item.category}{item.descricao ? ` (${item.descricao})` : ""} — {formatar(item.amount)}
               </span>
               <button type="button" onClick={() => removerItem(i)} className="text-red-400 text-xs">Remover</button>
             </div>
@@ -183,17 +200,19 @@ export default function FormComanda({
         </div>
       )}
 
-      <div>
-        <label className="text-sm text-gray-400 block mb-2">Forma de pagamento</label>
-        <div className="grid grid-cols-2 gap-2">
-          {METODOS_PAGAMENTO.map((m) => (
-            <button key={m.valor} type="button" onClick={() => setPaymentMethod(m.valor)}
-              className={`rounded-lg px-3 py-2 text-sm font-semibold border transition-colors ${paymentMethod === m.valor ? "bg-gold text-black-deep border-gold" : "bg-black-deep text-gray-300 border-gold-dark/40 hover:border-gold"}`}>
-              {m.label}
-            </button>
-          ))}
+      {mostrarFormaPagamento && (
+        <div>
+          <label className="text-sm text-gray-400 block mb-2">Forma de pagamento</label>
+          <div className="grid grid-cols-2 gap-2">
+            {METODOS_PAGAMENTO.map((m) => (
+              <button key={m.valor} type="button" onClick={() => setPaymentMethod(m.valor)}
+                className={`rounded-lg px-3 py-2 text-sm font-semibold border transition-colors ${paymentMethod === m.valor ? "bg-gold text-black-deep border-gold" : "bg-black-deep text-gray-300 border-gold-dark/40 hover:border-gold"}`}>
+                {m.label}
+              </button>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
 
       <button type="button" onClick={handleFechar} disabled={carregando || itens.length === 0}
         className="bg-gold text-black-deep font-semibold rounded-lg py-2.5 hover:bg-gold-light transition-colors disabled:opacity-50 mt-2">

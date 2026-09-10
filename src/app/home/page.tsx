@@ -111,7 +111,7 @@ export default async function HomePage() {
           <Card titulo="Entradas (mês)" valor={formatar(entradasMes)} />
           <Card titulo="Saídas (mês)" valor={formatar(saidasMes)} />
           <Card titulo="Comissões pendentes" valor={formatar(totalComissoesPendentes)} />
-          <Card titulo="Fundos da Barbearia" valor={formatar(fundosAcumulados)} destaque />
+          <Card titulo="Serviços Registrados Mensalmente" valor={formatar(entradasMes - saidasMes)} destaque />
         </div>
 
         <div className="border border-gold-dark/40 bg-black-soft rounded-xl p-4 mb-8">

@@ -6,6 +6,7 @@ import Footer from "@/components/Footer";
 import FundoAbstrato from "@/components/FundoAbstrato";
 import TesouraAnimada from "@/components/TesouraAnimada";
 import { verificarLogin } from "./actions";
+import FormRelato from "@/components/FormRelato";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");

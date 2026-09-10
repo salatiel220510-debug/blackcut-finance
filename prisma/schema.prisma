@@ -37,6 +37,22 @@ enum PaymentMethod {
   CARTAO_CREDITO
 }
 
+enum BudgetAlertLevel {
+  ATENCAO
+  ESTOURADO
+}
+
+enum ReportType {
+  PROBLEMA
+  MELHORIA
+  OUTRO
+}
+
+enum ReportStatus {
+  ABERTO
+  RESOLVIDO
+}
+
 model User {
   id              String        @id @default(cuid())
   name            String
@@ -55,6 +71,7 @@ model User {
   liquidacoesRealizadas CommissionSettlement[] @relation("LiquidacoesRealizadas")
   diasFechados          DailyClosure[]
   notificacoesEnviadas  Notification[]
+  relatos               Report[]
 
   @@index([status])
   @@index([role])
@@ -115,6 +132,10 @@ model Settings {
   proLaboreMeta          Decimal?  @db.Decimal(10, 2)
   reservaMeta            Decimal?  @db.Decimal(10, 2)
 
+  taxaPix     Decimal @default(0) @db.Decimal(5, 2)
+  taxaDebito  Decimal @default(0) @db.Decimal(5, 2)
+  taxaCredito Decimal @default(0) @db.Decimal(5, 2)
+
   updatedAt              DateTime  @updatedAt
 }
 
@@ -142,11 +163,6 @@ model ExpenseCategory {
   alertas     BudgetAlert[]
 
   @@index([type])
-}
-
-enum BudgetAlertLevel {
-  ATENCAO
-  ESTOURADO
 }
 
 model BudgetAlert {
@@ -213,6 +229,33 @@ model DailyClosure {
   createdAt  DateTime @default(now())
 }
 
+model Notification {
+  id          String   @id @default(cuid())
+  title       String
+  body        String
+  linkUrl     String?
+  linkLabel   String?
+  createdById String
+  createdBy   User     @relation(fields: [createdById], references: [id])
+  createdAt   DateTime @default(now())
+
+  @@index([createdAt])
+}
+
+model Report {
+  id          String       @id @default(cuid())
+  type        ReportType
+  title       String
+  description String
+  status      ReportStatus @default(ABERTO)
+  createdById String
+  createdBy   User         @relation(fields: [createdById], references: [id])
+  createdAt   DateTime     @default(now())
+  resolvedAt  DateTime?
+
+  @@index([status])
+}
+
 model PushSubscription {
   id        String   @id @default(cuid())
   userId    String
@@ -232,15 +275,4 @@ model LoginAttempt {
   createdAt  DateTime @default(now())
 
   @@index([identifier, createdAt])
-}
-
-model Notification {
-  id          String   @id @default(cuid())
-  title       String
-  body        String
-  createdById String
-  createdBy   User     @relation(fields: [createdById], references: [id])
-  createdAt   DateTime @default(now())
-
-  @@index([createdAt])
 }

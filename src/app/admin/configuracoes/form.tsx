@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import DemoLoginForm from "@/components/DemoLoginForm";
 import {
   atualizarComissao,
   criarServico,
@@ -49,6 +50,7 @@ const ABAS = [
 export default function ConfiguracoesForm({
   comissaoAtual,
   saldoAtual,
+  taxas,
   envelopes,
   metas,
   servicos,
@@ -56,6 +58,7 @@ export default function ConfiguracoesForm({
 }: {
   comissaoAtual: number;
   saldoAtual: number;
+    taxas: { pix: number; debito: number; credito: number };
   envelopes: { operacional: number; proLabore: number; reserva: number };
   metas: { proLabore: number | null; reserva: number | null };
   servicos: Servico[];
@@ -142,7 +145,44 @@ export default function ConfiguracoesForm({
               </button>
             </form>
           </section>
+        
+          <section className="border border-gold-dark/40 bg-black-soft rounded-xl p-5">
+            <h2 className="font-display text-lg text-gold mb-4">Taxas de Pagamento</h2>
+            <p className="text-gray-400 text-sm mb-3">Percentual cobrado pela maquininha/Pix em cada forma de recebimento.</p>
+            <form
+              onSubmit={async (e) => {
+                e.preventDefault();
+                const { atualizarTaxas } = await import("./actions");
+                const resultado = await atualizarTaxas(new FormData(e.currentTarget));
+                setMensagem(resultado?.erro || "Taxas atualizadas!");
+              }}
+              className="flex flex-col gap-3"
+            >
+              <div>
+                <label className="text-sm text-gray-300 block mb-1">Taxa Pix (%)</label>
+                <input name="taxaPix" type="number" step="0.01" min="0" max="100" defaultValue={taxas.pix} required className={inputClass} />
+              </div>
+              <div>
+                <label className="text-sm text-gray-300 block mb-1">Taxa Débito (%)</label>
+                <input name="taxaDebito" type="number" step="0.01" min="0" max="100" defaultValue={taxas.debito} required className={inputClass} />
+              </div>
+              <div>
+                <label className="text-sm text-gray-300 block mb-1">Taxa Crédito (%)</label>
+                <input name="taxaCredito" type="number" step="0.01" min="0" max="100" defaultValue={taxas.credito} required className={inputClass} />
+              </div>
+              <button type="submit" className="bg-gold text-black-deep font-semibold rounded-lg px-4 py-2 hover:bg-gold-light transition-colors">
+                Salvar Taxas
+              </button>
+            </form>
+          </section>
+
+          <section className="border border-gold-dark/40 bg-black-soft rounded-xl p-5">
+            <h2 className="font-display text-lg text-gold mb-2">Modo Demonstração</h2>
+            <p className="text-gray-400 text-sm mb-3">Ative para testar o site livremente sem afetar os dados reais.</p>
+            <DemoLoginForm />
+          </section>
         </div>
+          
       )}
 
       {aba === "envelope" && (

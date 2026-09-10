@@ -10,8 +10,10 @@ async function main() {
   console.log("\n⚠️  ATENÇÃO: este script vai apagar PERMANENTEMENTE:");
   console.log("  - Todas as contas de barbeiros (a conta de dono é preservada)");
   console.log("  - Todos os lançamentos do fluxo de caixa");
-  console.log("  - O código de acesso atual e o saldo bancário informado");
-  console.log("  - A comissão será resetada para 40%\n");
+  console.log("  - Todos os fechamentos mensais e diários");
+  console.log("  - Todos os cartões fidelidade, relatos e notificações");
+  console.log("  - Código de acesso, saldo bancário e taxas de pagamento");
+  console.log("  - A comissão será resetada para 40%, envelopes para 60/30/10\n");
 
   const resposta = await perguntar('Digite exatamente "CONFIRMAR" para prosseguir: ');
   if (resposta !== "CONFIRMAR") {
@@ -19,8 +21,32 @@ async function main() {
     process.exit(0);
   }
 
-  const transacoesApagadas = await prisma.transaction.deleteMany({});
-  console.log(`✓ ${transacoesApagadas.count} lançamento(s) apagado(s).`);
+  await prisma.budgetAlert.deleteMany({});
+  console.log("✓ Alertas de orçamento apagados.");
+
+  await prisma.commissionSettlement.deleteMany({});
+  console.log("✓ Liquidações de comissão apagadas.");
+
+  await prisma.transaction.deleteMany({});
+  console.log("✓ Lançamentos do caixa apagados.");
+
+  await prisma.monthlyClosure.deleteMany({});
+  console.log("✓ Fechamentos mensais apagados.");
+
+  await prisma.dailyClosure.deleteMany({});
+  console.log("✓ Fechamentos diários apagados.");
+
+  await prisma.loyaltyCard.deleteMany({});
+  console.log("✓ Cartões fidelidade apagados.");
+
+  await prisma.report.deleteMany({});
+  console.log("✓ Relatos apagados.");
+
+  await prisma.notification.deleteMany({});
+  console.log("✓ Notificações apagadas.");
+
+  await prisma.loginAttempt.deleteMany({});
+  console.log("✓ Histórico de tentativas de login apagado.");
 
   const naoDonos = await prisma.user.findMany({ where: { role: { not: "OWNER" } }, select: { id: true } });
   const idsNaoDonos = naoDonos.map((u) => u.id);
@@ -33,9 +59,22 @@ async function main() {
 
   await prisma.settings.update({
     where: { id: 1 },
-    data: { commissionPercentage: 40.0, saldoBancario: 0, accessCode: null, accessCodeUpdatedAt: null },
+    data: {
+      commissionPercentage: 40.0,
+      saldoBancario: 0,
+      accessCode: null,
+      accessCodeUpdatedAt: null,
+      envelopeOperacionalPct: 60,
+      envelopeProLaborePct: 30,
+      envelopeReservaPct: 10,
+      proLaboreMeta: null,
+      reservaMeta: null,
+      taxaPix: 0,
+      taxaDebito: 0,
+      taxaCredito: 0,
+    },
   });
-  console.log("✓ Comissão resetada para 40%, saldo bancário zerado, código de acesso limpo.");
+  console.log("✓ Configurações resetadas para os valores padrão.");
 
   console.log("\n✅ Reset concluído com sucesso.\n");
 }

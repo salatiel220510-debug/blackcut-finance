@@ -2,6 +2,7 @@
 import { useState } from "react";
 import BotaoExcluirTransacao from "@/components/BotaoExcluirTransacao";
 import type { ItemExibicao } from "@/lib/agruparTransacoes";
+import CartaoFidelidadeMini from "./CartaoFidelidadeMini";
 
 export type TransacaoView = {
   id: string;
@@ -109,6 +110,8 @@ export default function ListaTransacoesDia({ servicos, gastos }: { servicos: Ite
                   {selecionado.itens[0]?.paymentMethod && (
                     <Linha label="Pagamento" valor={PAGAMENTO_LABEL[selecionado.itens[0].paymentMethod!] ?? selecionado.itens[0].paymentMethod!} />
                   )}
+                  {selecionado.itens[0]?.observacao && <Linha label="Observação" valor={selecionado.itens[0].observacao} />}
+                                  <CartaoFidelidadeMini clienteNome={selecionado.itens[0]?.clienteNome ?? null} />
                 </div>
                 <div className="border-t border-gold-dark/20 pt-3">
                   <p className="text-gold text-xs font-semibold mb-2">Itens da comanda ({selecionado.itens.length}):</p>

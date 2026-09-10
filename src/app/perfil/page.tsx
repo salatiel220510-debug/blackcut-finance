@@ -10,6 +10,7 @@ import { fundosMensais } from "@/lib/dashboardFinanceiro";
 import GraficoBarraMensalSimples from "@/components/GraficoBarraMensalSimples";
 import PushNotificationSetup from "@/components/PushNotificationSetup";
 import GerarCodigoAcesso from "@/components/GerarCodigoAcesso";
+import FormRelato from "@/components/FormRelato";
 
 export default async function PerfilPage() {
   const session = await auth();
@@ -96,10 +97,12 @@ export default async function PerfilPage() {
 
   const totalEntradasGeral = Number(entradasTotalAgg._sum.amount ?? 0);
   const totalSaidasGeral = Number(saidasTotalAgg._sum.amount ?? 0);
+  const entradasMes = totalEntradasGeral;
+  const saidasMes = totalSaidasGeral;
   const totalComissoesPendentes = Number(comissoesAgg._sum.commissionAmount ?? 0);
-  const fundosAtuais = totalEntradasGeral - totalSaidasGeral - totalComissoesPendentes;
+  const fundosAcumulados = totalEntradasGeral - totalSaidasGeral - totalComissoesPendentes;
   const saldoBancario = settings ? Number(settings.saldoBancario) : 0;
-  const diferenca = fundosAtuais - saldoBancario;
+  const diferenca = totalEntradasGeral - totalSaidasGeral - saldoBancario;
 
   const comissoesPorBarbeiro = await Promise.all(
     barbeiros.map(async (b) => ({ nome: b.name, pendente: await comissaoPendenteBarbeiro(b.id) }))
@@ -118,22 +121,11 @@ export default async function PerfilPage() {
         </section>
 
         <section className="border border-gold-dark/40 bg-black-soft rounded-xl p-5 mb-6">
-          <h2 className="font-display text-lg text-gold mb-3">Fundos da Barbearia</h2>
-          <p className="text-2xl font-bold text-gold mb-3">{formatar(fundosAtuais)}</p>
+          <h2 className="font-display text-lg text-gold mb-3">Serviços Registrados Mensalmente</h2>
+          <p className="text-2xl font-bold text-gold mb-3">{formatar(entradasMes - saidasMes)}</p>
           <GraficoBarraMensalSimples dados={fundosMensaisData} chaveValor="fundos" nomeSerie="Fundos" />
+
           <table className="w-full text-sm mt-4">
-            <tbody>
-              <tr className="border-b border-gold-dark/20">
-                <td className="py-2 text-gray-400">Saldo bancário informado</td>
-                <td className="py-2 text-right font-bold text-white">{formatar(saldoBancario)}</td>
-              </tr>
-              <tr>
-                <td className="py-2 text-gray-400">Diferença</td>
-                <td className={`py-2 text-right font-bold ${Math.abs(diferenca) < 0.01 ? "text-green-400" : "text-red-400"}`}>
-                  {formatar(diferenca)}
-                </td>
-              </tr>
-            </tbody>
           </table>
         </section>
 
@@ -169,6 +161,11 @@ export default async function PerfilPage() {
           </p>
           <PushNotificationSetup />
         </section>
+        
+          <section className="border border-gold-dark/40 bg-black-soft rounded-xl p-5 mb-6">
+            <h2 className="font-display text-lg text-gold mb-3">Relatar algo</h2>
+            <FormRelato />
+          </section>
 
         <section className="border border-gold-dark/40 bg-black-soft rounded-xl p-5">
           <h2 className="font-display text-lg text-gold mb-4">Alterar Senha</h2>
