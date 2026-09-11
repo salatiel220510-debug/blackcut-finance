@@ -115,7 +115,7 @@ export default async function HomePage() {
         </div>
 
         <div className="border border-gold-dark/40 bg-black-soft rounded-xl p-4 mb-8">
-          <h2 className="font-display text-lg text-gold mb-3">Fundos x Saldo Bancário</h2>
+          <h2 className="font-display text-lg text-gold mb-3">Serviços Registrados Mensalmente x Saldo Bancário</h2>
           <table className="w-full text-sm">
             <tbody>
               <tr className="border-b border-gold-dark/20">
