@@ -74,6 +74,11 @@ export default async function PerfilPage() {
             <PushNotificationSetup />
           </section>
 
+                    <section className="border border-gold-dark/40 bg-black-soft rounded-xl p-5 mb-6">
+            <h2 className="font-display text-lg text-gold mb-3">Relatar algo</h2>
+            <FormRelato />
+          </section>
+
           <section className="border border-gold-dark/40 bg-black-soft rounded-xl p-5">
             <h2 className="font-display text-lg text-gold mb-4">Alterar Senha</h2>
             <FormSenha />
@@ -162,11 +167,6 @@ export default async function PerfilPage() {
           <PushNotificationSetup />
         </section>
         
-          <section className="border border-gold-dark/40 bg-black-soft rounded-xl p-5 mb-6">
-            <h2 className="font-display text-lg text-gold mb-3">Relatar algo</h2>
-            <FormRelato />
-          </section>
-
         <section className="border border-gold-dark/40 bg-black-soft rounded-xl p-5">
           <h2 className="font-display text-lg text-gold mb-4">Alterar Senha</h2>
           <FormSenha />
