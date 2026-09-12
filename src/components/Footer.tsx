@@ -95,7 +95,7 @@ export default function Footer({ role }: { role?: string }) {
         <div className="flex flex-col items-center gap-1 pt-3 border-t border-gold-dark/10">
           <p className="text-xs text-gray-500">BlackCut Finance — Versão {APP_VERSION}</p>
           <p className="text-xs text-gray-500">
-            Powered by <span className="text-gold-dark">Alpha Órbita Labs</span>. Todos os direitos reservados.
+            Powered by <span className="text-gold-dark">Alpha Órbita Labs</span>. © 2026Todos os direitos reservados.
           </p>
         </div>
       </div>
