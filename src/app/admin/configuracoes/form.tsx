@@ -1,6 +1,5 @@
 "use client";
 import { useState } from "react";
-import DemoLoginForm from "@/components/DemoLoginForm";
 import {
   atualizarComissao,
   criarServico,
@@ -11,10 +10,12 @@ import {
   atualizarSaldoBancario,
   atualizarEnvelopes,
   atualizarMetas,
+  atualizarTaxas,
   criarCategoriaDespesa,
   atualizarBudgetCategoria,
   desativarCategoriaDespesa,
 } from "./actions";
+import DemoLoginForm from "@/components/DemoLoginForm";
 
 type Servico = {
   id: string;
@@ -50,17 +51,17 @@ const ABAS = [
 export default function ConfiguracoesForm({
   comissaoAtual,
   saldoAtual,
-  taxas,
   envelopes,
   metas,
+  taxas,
   servicos,
   categorias,
 }: {
   comissaoAtual: number;
   saldoAtual: number;
-    taxas: { pix: number; debito: number; credito: number };
   envelopes: { operacional: number; proLabore: number; reserva: number };
   metas: { proLabore: number | null; reserva: number | null };
+  taxas: { pix: number; debito: number; credito: number };
   servicos: Servico[];
   categorias: Categoria[];
 }) {
@@ -77,6 +78,12 @@ export default function ConfiguracoesForm({
     e.preventDefault();
     const resultado = await atualizarSaldoBancario(new FormData(e.currentTarget));
     setMensagem(resultado?.erro || "Saldo bancário atualizado!");
+  }
+
+  async function handleTaxas(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const resultado = await atualizarTaxas(new FormData(e.currentTarget));
+    setMensagem(resultado?.erro || "Taxas atualizadas!");
   }
 
   async function handleEnvelopes(e: React.FormEvent<HTMLFormElement>) {
@@ -145,19 +152,11 @@ export default function ConfiguracoesForm({
               </button>
             </form>
           </section>
-        
+
           <section className="border border-gold-dark/40 bg-black-soft rounded-xl p-5">
             <h2 className="font-display text-lg text-gold mb-4">Taxas de Pagamento</h2>
             <p className="text-gray-400 text-sm mb-3">Percentual cobrado pela maquininha/Pix em cada forma de recebimento.</p>
-            <form
-              onSubmit={async (e) => {
-                e.preventDefault();
-                const { atualizarTaxas } = await import("./actions");
-                const resultado = await atualizarTaxas(new FormData(e.currentTarget));
-                setMensagem(resultado?.erro || "Taxas atualizadas!");
-              }}
-              className="flex flex-col gap-3"
-            >
+            <form onSubmit={handleTaxas} className="flex flex-col gap-3">
               <div>
                 <label className="text-sm text-gray-300 block mb-1">Taxa Pix (%)</label>
                 <input name="taxaPix" type="number" step="0.01" min="0" max="100" defaultValue={taxas.pix} required className={inputClass} />
@@ -182,7 +181,6 @@ export default function ConfiguracoesForm({
             <DemoLoginForm />
           </section>
         </div>
-          
       )}
 
       {aba === "envelope" && (

@@ -39,3 +39,7 @@ export async function enviarPushParaTodosAprovados(payload: { title: string; bod
   const usuarios = await prisma.user.findMany({ where: { status: "APPROVED" } });
   await enviarParaSubscriptions(usuarios.map((u) => u.id), payload);
 }
+
+export async function enviarPushParaUsuario(userId: string, payload: { title: string; body: string }) {
+  await enviarParaSubscriptions([userId], payload);
+}
