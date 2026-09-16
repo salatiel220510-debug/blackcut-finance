@@ -1,15 +1,16 @@
 "use client";
 import { useState } from "react";
 import BotaoExcluirTransacao from "@/components/BotaoExcluirTransacao";
-import type { ItemExibicao } from "@/lib/agruparTransacoes";
 import CartaoFidelidadeMini from "./CartaoFidelidadeMini";
+import CupomComanda from "./CupomComanda";
+import type { ItemExibicao } from "@/lib/agruparTransacoes";
 
 export type TransacaoView = {
   id: string;
   type: "INCOME" | "EXPENSE";
   category: string;
   description: string | null;
-  observacao: string |null;
+  observacao: string | null;
   amount: number;
   date: string;
   barberNome: string | null;
@@ -34,6 +35,7 @@ function formatar(v: number) {
 
 export default function ListaTransacoesDia({ servicos, gastos }: { servicos: ItemExibicao[]; gastos: ItemExibicao[] }) {
   const [selecionado, setSelecionado] = useState<ItemExibicao | null>(null);
+  const [mostrarCupom, setMostrarCupom] = useState(false);
 
   return (
     <>
@@ -106,14 +108,15 @@ export default function ListaTransacoesDia({ servicos, gastos }: { servicos: Ite
                   <Linha label="Data" valor={new Date(selecionado.date).toLocaleString("pt-BR")} />
                   {selecionado.barberNome && <Linha label="Barbeiro" valor={selecionado.barberNome} />}
                   {selecionado.itens[0]?.clienteNome && <Linha label="Cliente" valor={selecionado.itens[0].clienteNome!} />}
-                                    {selecionado.itens[0]?.observacao && <Linha label="Observação" valor={selecionado.itens[0].observacao} />}
                   {selecionado.itens[0]?.paymentMethod && (
                     <Linha label="Pagamento" valor={PAGAMENTO_LABEL[selecionado.itens[0].paymentMethod!] ?? selecionado.itens[0].paymentMethod!} />
                   )}
                   {selecionado.itens[0]?.observacao && <Linha label="Observação" valor={selecionado.itens[0].observacao} />}
-                                  <CartaoFidelidadeMini clienteNome={selecionado.itens[0]?.clienteNome ?? null} />
                 </div>
-                <div className="border-t border-gold-dark/20 pt-3">
+
+                <CartaoFidelidadeMini clienteNome={selecionado.itens[0]?.clienteNome ?? null} />
+
+                <div className="border-t border-gold-dark/20 pt-3 mt-3">
                   <p className="text-gold text-xs font-semibold mb-2">Itens da comanda ({selecionado.itens.length}):</p>
                   <div className="flex flex-col gap-2">
                     {selecionado.itens.map((i) => (
@@ -124,6 +127,12 @@ export default function ListaTransacoesDia({ servicos, gastos }: { servicos: Ite
                     ))}
                   </div>
                 </div>
+
+                {selecionado.itens[0]?.type === "INCOME" && (
+                  <button onClick={() => setMostrarCupom(true)} className="w-full mt-3 border border-gold-dark rounded-lg py-2 text-gold text-sm hover:border-gold transition-colors">
+                    🧾 Ver Cupom
+                  </button>
+                )}
               </>
             ) : (
               <>
@@ -139,12 +148,23 @@ export default function ListaTransacoesDia({ servicos, gastos }: { servicos: Ite
                   {selecionado.itens[0].paymentMethod && (
                     <Linha label="Pagamento" valor={PAGAMENTO_LABEL[selecionado.itens[0].paymentMethod] ?? selecionado.itens[0].paymentMethod} />
                   )}
+                  {selecionado.itens[0].observacao && <Linha label="Observação" valor={selecionado.itens[0].observacao} />}
                   {selecionado.itens[0].description && <Linha label="Descrição" valor={selecionado.itens[0].description} />}
                   <Linha label="Lançado por" valor={selecionado.itens[0].criadoPorNome} />
                 </div>
 
+                {selecionado.itens[0].type === "INCOME" && (
+                  <CartaoFidelidadeMini clienteNome={selecionado.itens[0].clienteNome} />
+                )}
+
+                {selecionado.itens[0].type === "INCOME" && (
+                  <button onClick={() => setMostrarCupom(true)} className="w-full mt-3 border border-gold-dark rounded-lg py-2 text-gold text-sm hover:border-gold transition-colors">
+                    🧾 Ver Cupom
+                  </button>
+                )}
+
                 {selecionado.itens[0].podeExcluir && (
-                  <div className="border-t border-gold-dark/20 pt-3">
+                  <div className="border-t border-gold-dark/20 pt-3 mt-3">
                     <BotaoExcluirTransacao id={selecionado.itens[0].id} onSucesso={() => setSelecionado(null)} />
                   </div>
                 )}
@@ -152,6 +172,18 @@ export default function ListaTransacoesDia({ servicos, gastos }: { servicos: Ite
             )}
           </div>
         </div>
+      )}
+
+      {mostrarCupom && selecionado && (
+        <CupomComanda
+          itens={selecionado.itens.map((i) => ({ category: i.category, amount: i.amount }))}
+          total={selecionado.amount}
+          paymentMethod={selecionado.itens[0]?.paymentMethod ?? null}
+          clienteNome={selecionado.itens[0]?.clienteNome ?? null}
+          barberNome={selecionado.barberNome}
+          data={selecionado.date}
+          onFechar={() => setMostrarCupom(false)}
+        />
       )}
     </>
   );

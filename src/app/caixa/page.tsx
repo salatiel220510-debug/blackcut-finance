@@ -5,9 +5,11 @@ import Footer from "@/components/Footer";
 import SeletorData from "@/components/SeletorData";
 import ListaTransacoesDia, { TransacaoView } from "@/components/ListaTransacoesDia";
 import BotaoFecharBarbearia from "@/components/BotaoFecharBarbearia";
+import StatusCaixa from "@/components/StatusCaixa";
 import { agruparPorComanda } from "@/lib/agruparTransacoes";
 import { limitesDoDiaEspecifico, hojeBrasilString } from "@/lib/datasBrasil";
 import { calcularFechamento } from "@/lib/fechamentoMensal";
+import { sessaoAberta } from "@/lib/caixaSessao";
 
 export default async function CaixaPage({ searchParams }: { searchParams: Promise<{ data?: string }> }) {
   const session = await auth();
@@ -25,7 +27,7 @@ export default async function CaixaPage({ searchParams }: { searchParams: Promis
 
   const agora = new Date();
 
-  const [previaMes, entradasTotalAgg, saidasTotalAgg, comissoesAgg, settings, transacoesDoDia, fechamentoDoDia] = await Promise.all([
+  const [previaMes, entradasTotalAgg, saidasTotalAgg, comissoesAgg, settings, transacoesDoDia, fechamentoDoDia, sessaoAtual] = await Promise.all([
     calcularFechamento(agora.getUTCFullYear(), agora.getUTCMonth()),
     prisma.transaction.aggregate({ where: { type: "INCOME", deletedAt: null }, _sum: { amount: true } }),
     prisma.transaction.aggregate({ where: { type: "EXPENSE", deletedAt: null }, _sum: { amount: true } }),
@@ -40,20 +42,26 @@ export default async function CaixaPage({ searchParams }: { searchParams: Promis
       include: { barber: { select: { name: true } }, createdBy: { select: { name: true } } },
     }),
     prisma.dailyClosure.findUnique({ where: { data: dataChaveFechamento } }),
+    sessaoAberta(),
   ]);
 
   const diaFechado = !!fechamentoDoDia;
 
   const entradasMes = previaMes.faturamentoBruto;
   const saidasMes = previaMes.totalDespesas;
-  const saldoMes = entradasMes - saidasMes;
-  const totalComissoes = Number(comissoesAgg._sum.commissionAmount ?? 0);
 
   const totalEntradasGeral = Number(entradasTotalAgg._sum.amount ?? 0);
   const totalSaidasGeral = Number(saidasTotalAgg._sum.amount ?? 0);
-  const fundosAcumulados = totalEntradasGeral - totalSaidasGeral - totalComissoes;
-  const saldoBancario = settings ? Number(settings.saldoBancario) : 0;
-  const diferenca = fundosAcumulados - saldoBancario;
+  const totalComissoes = Number(comissoesAgg._sum.commissionAmount ?? 0);
+
+  const sessaoInfo = sessaoAtual
+    ? {
+        id: sessaoAtual.id,
+        abertoPorNome: sessaoAtual.abertoPor.name,
+        abertoEm: sessaoAtual.abertoEm.toISOString(),
+        fundoTroco: Number(sessaoAtual.fundoTroco),
+      }
+    : null;
 
   const paraView = (t: (typeof transacoesDoDia)[number]): TransacaoView => ({
     id: t.id,
@@ -88,39 +96,15 @@ export default async function CaixaPage({ searchParams }: { searchParams: Promis
   return (
     <div className="min-h-screen flex flex-col">
       <main className="flex-1 max-w-4xl w-full mx-auto px-4 py-8">
-        <h1 className="font-display text-2xl text-gold mb-1">Fluxo de Caixa</h1>
-        <p className="text-gray-400 text-sm mb-6">Cartões abaixo referem-se ao mês atual.</p>
+        <h1 className="font-display text-2xl text-gold mb-6">Fluxo de Caixa</h1>
+
+        <StatusCaixa sessao={sessaoInfo} />
 
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
           <Card titulo="Entradas (mês)" valor={formatar(entradasMes)} />
           <Card titulo="Saídas (mês)" valor={formatar(saidasMes)} />
-          <Card titulo="Saldo (mês)" valor={formatar(saldoMes)} destaque={saldoMes >= 0} negativo={saldoMes < 0} />
+          <Card titulo="Serviços Registrados Mensalmente" valor={formatar(entradasMes - saidasMes)} destaque />
           <Card titulo="Comissões pendentes" valor={formatar(totalComissoes)} />
-        </div>
-
-        <div className="border border-gold-dark/40 bg-black-soft rounded-xl p-4 mb-8">
-          <h2 className="font-display text-lg text-gold mb-3">Fundos da Barbearia</h2>
-          <table className="w-full text-sm">
-            <tbody>
-              <tr className="border-b border-gold-dark/20">
-                <td className="py-2 text-gray-400">Serviços Registrados Mensalmente</td>
-                <td className="py-2 text-right font-bold text-gold">{formatar(entradasMes - saidasMes)}</td>
-              </tr>
-              <tr className="border-b border-gold-dark/20">
-                <td className="py-2 text-gray-400">Saldo bancário informado</td>
-                <td className="py-2 text-right font-bold text-white">{formatar(saldoBancario)}</td>
-              </tr>
-              <tr>
-                <td className="py-2 text-gray-400">Diferença</td>
-                <td className={`py-2 text-right font-bold ${Math.abs(diferenca) < 0.01 ? "text-green-400" : "text-red-400"}`}>
-                  {formatar(diferenca)}
-                </td>
-              </tr>
-            </tbody>
-          </table>
-          <p className="text-xs text-gray-500 mt-2">
-            Diferença perto de zero indica que o valor calculado bate com o que está informado no banco. Atualize o saldo bancário em Configurações sempre que conferir o extrato real.
-          </p>
         </div>
 
         <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
@@ -151,11 +135,11 @@ export default async function CaixaPage({ searchParams }: { searchParams: Promis
   );
 }
 
-function Card({ titulo, valor, destaque, negativo }: { titulo: string; valor: string; destaque?: boolean; negativo?: boolean }) {
+function Card({ titulo, valor, destaque }: { titulo: string; valor: string; destaque?: boolean }) {
   return (
-    <div className={`border rounded-xl p-4 ${destaque ? "border-gold bg-gold/10" : negativo ? "border-red-400 bg-red-400/10" : "border-gold-dark/40 bg-black-soft"}`}>
+    <div className={`border rounded-xl p-4 ${destaque ? "border-gold bg-gold/10" : "border-gold-dark/40 bg-black-soft"}`}>
       <p className="text-xs text-gray-400 uppercase tracking-wide mb-1">{titulo}</p>
-      <p className={`text-lg font-bold ${destaque ? "text-gold" : negativo ? "text-red-400" : "text-white"}`}>{valor}</p>
+      <p className={`text-lg font-bold ${destaque ? "text-gold" : "text-white"}`}>{valor}</p>
     </div>
   );
 }
