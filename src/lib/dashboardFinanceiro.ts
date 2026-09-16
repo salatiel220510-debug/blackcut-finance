@@ -5,8 +5,8 @@ import { limitesDoMesEspecifico } from "@/lib/datasBrasil";
 export async function despesasPorCategoriaMes(ano: number, mesIndex0: number) {
   const { inicio, fimExclusivo } = limitesDoMesEspecifico(ano, mesIndex0);
 
-  const despesas = await prisma.transaction.findMany({
-    where: { type: "EXPENSE", deletedAt: null, date: { gte: inicio, lt: fimExclusivo } },
+   const despesas = await prisma.transaction.findMany({
+    where: { type: "EXPENSE", deletedAt: null, date: { gte: inicio, lt: fimExclusivo }, category: { not: "Comissão Paga" } },
     include: { expenseCategory: true },
   });
 

@@ -54,6 +54,7 @@ export async function excluirTransacao(id: string) {
 export async function fecharDiaAction(data: string) {
   const session = await auth();
   if (!session?.user) return { erro: "Não autenticado." };
+  if ((session.user as any).role !== "OWNER") return { erro: "Apenas o dono pode fechar a barbearia." };
 
   const userId = (session.user as any).id;
   const [ano, mes, dia] = data.split("-").map(Number);

@@ -129,6 +129,7 @@ export default async function CaixaPage({ searchParams }: { searchParams: Promis
             <SeletorData dataAtual={dataSelecionada} />
             <BotaoFecharBarbearia
               data={dataSelecionada}
+              role={role}
               totalEntradas={totalEntradasDia}
               totalSaidas={totalSaidasDia}
               totalComissoes={totalComissoesDia}

@@ -33,3 +33,9 @@ export async function marcarCartao(clienteNome: string) {
 
   return { cartao: atualizado, mostrarMensagem, completou };
 }
+
+export async function buscarCartaoSomenteLeitura(clienteNome: string) {
+  const normalizado = normalizarNome(clienteNome);
+  if (!normalizado) return null;
+  return prisma.loyaltyCard.findUnique({ where: { clienteNomeNormalizado: normalizado } });
+}

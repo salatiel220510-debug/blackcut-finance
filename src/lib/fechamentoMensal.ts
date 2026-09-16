@@ -20,7 +20,8 @@ export async function calcularFechamento(ano: number, mesIndex0: number) {
     .filter((t) => t.type === "INCOME")
     .reduce((s, t) => s + Number(t.commissionAmount ?? 0), 0);
 
-  const despesas = transacoes.filter((t) => t.type === "EXPENSE");
+  // Exclui "Comissão Paga" — já contabilizada via totalComissoes (provisionada); incluí-la aqui também causaria dupla contagem.
+const despesas = transacoes.filter((t) => t.type === "EXPENSE" && t.category !== "Comissão Paga");
 
   const totalDespesasFixas = despesas.filter((t) => t.expenseCategory?.type === "FIXED").reduce((s, t) => s + Number(t.amount), 0);
   const totalDespesasVariaveis = despesas.filter((t) => t.expenseCategory?.type === "VARIABLE").reduce((s, t) => s + Number(t.amount), 0);

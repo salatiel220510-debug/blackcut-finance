@@ -7,6 +7,7 @@ type ItemResumo = { category: string; amount: number; barberNome?: string | null
 
 export default function BotaoFecharBarbearia({
   data,
+  role,
   totalEntradas,
   totalSaidas,
   totalComissoes,
@@ -15,6 +16,7 @@ export default function BotaoFecharBarbearia({
   jaFechado,
 }: {
   data: string;
+  role: string;
   totalEntradas: number;
   totalSaidas: number;
   totalComissoes: number;
@@ -59,7 +61,7 @@ export default function BotaoFecharBarbearia({
   return (
     <>
       <button onClick={() => setAberto(true)} className="bg-gold text-black-deep font-semibold rounded-lg px-4 py-2 text-sm hover:bg-gold-light transition-colors whitespace-nowrap">
-        {fechado ? "Dia Fechado ✓" : "Fechar Barbearia"}
+        {fechado ? "Dia Fechado ✓" : "Resumo do Dia"}
       </button>
 
       {aberto && (
@@ -99,7 +101,7 @@ export default function BotaoFecharBarbearia({
 
             {fechado ? (
               <p className="text-green-400 text-sm text-center mb-2">✓ Este dia já foi fechado.</p>
-            ) : (
+            ) : role === "OWNER" ? (
               <>
                 <p className="text-gray-400 text-xs text-center mb-3">
                   Ao confirmar, os barbeiros não poderão mais excluir lançamentos deste dia, e todos receberão uma notificação.
@@ -108,6 +110,8 @@ export default function BotaoFecharBarbearia({
                   {confirmando ? "Fechando..." : "Confirmar Fechamento"}
                 </button>
               </>
+            ) : (
+              <p className="text-gray-400 text-xs text-center mb-2">Apenas o dono pode fechar a barbearia.</p>
             )}
             {mensagem && <p className="text-gray-300 text-xs text-center mb-2">{mensagem}</p>}
 

@@ -146,3 +146,17 @@ export const relatoSchema = z.object({
   title: z.string().trim().min(1, "Informe um título.").max(150, "Título muito longo."),
   description: z.string().trim().min(1, "Descreva o relato.").max(1000, "Descrição muito longa."),
 });
+
+export const abrirCaixaSchema = z.object({
+  fundoTroco: numeroPtBR().refine((v) => v >= 0, "Informe um valor válido."),
+});
+
+export const fecharCaixaSchema = z.object({
+  contagemDinheiro: numeroPtBR().refine((v) => v >= 0, "Informe um valor válido."),
+  contagemCartao: numeroPtBR().refine((v) => v >= 0, "Informe um valor válido."),
+});
+
+export const movimentoCaixaSchema = z.object({
+  amount: numeroPtBR().refine((v) => v > 0, "Informe um valor maior que zero."),
+  motivo: z.string().trim().max(200).optional(),
+});
