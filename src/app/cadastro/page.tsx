@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
 import Link from "next/link";
-import Footer from "@/components/Footer";
+import FooterEstatico from "@/components/FooterEstatico";
 import FundoAbstrato from "@/components/FundoAbstrato";
 import TesouraAnimada from "@/components/TesouraAnimada";
 import { registrarBarbeiro } from "./actions";
@@ -71,7 +71,7 @@ export default function CadastroPage() {
           </div>
         </div>
       </div>
-      <Footer />
+      <FooterEstatico />
     </div>
   );
 }
