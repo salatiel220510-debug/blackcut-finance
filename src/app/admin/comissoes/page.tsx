@@ -4,11 +4,13 @@ import { redirect } from "next/navigation";
 import Footer from "@/components/Footer";
 import { comissaoPendenteBarbeiro } from "@/lib/comissoesPendentes";
 import FormComissao from "./form";
+import { temPermissao } from "@/lib/permissoes";
 
 export default async function ComissoesPage() {
   const session = await auth();
   if (!session?.user) redirect("/login");
-  if ((session.user as any).role !== "OWNER") redirect("/");
+    const role = (session.user as any).role;
+  if (!(await temPermissao(role, "verComissoesTodos"))) redirect("/");
 
   const barbeiros = await prisma.user.findMany({
     where: { role: "BARBER", status: "APPROVED" },

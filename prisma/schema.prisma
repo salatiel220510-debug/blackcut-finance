@@ -184,6 +184,8 @@ model Settings {
   taxaDebito  Decimal @default(0) @db.Decimal(5, 2)
   taxaCredito Decimal @default(0) @db.Decimal(5, 2)
 
+barberPermissions Json?
+
   updatedAt              DateTime  @updatedAt
 }
 

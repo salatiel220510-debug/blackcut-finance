@@ -3,6 +3,7 @@
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/auth";
 import { revalidatePath } from "next/cache";
+import { verificarPermissao } from "@/lib/permissoes";
 
 async function verificarDono() {
   const session = await auth();
@@ -12,7 +13,7 @@ async function verificarDono() {
 }
 
 export async function editarCartaoFidelidade(id: string, formData: FormData) {
-  await verificarDono();
+  await verificarPermissao("verFidelidadeGestao");
   const marcasAtuais = parseInt(formData.get("marcasAtuais") as string, 10);
   const cartoesCompletos = parseInt(formData.get("cartoesCompletos") as string, 10);
 

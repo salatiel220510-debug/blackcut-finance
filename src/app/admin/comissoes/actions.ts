@@ -5,6 +5,7 @@ import { auth } from "@/auth";
 import { revalidatePath } from "next/cache";
 import { comissaoPendenteBarbeiro } from "@/lib/comissoesPendentes";
 import { z } from "zod";
+import { verificarPermissao } from "@/lib/permissoes";
 
 const liquidarComissaoSchema = z.object({
   valorPago: z.coerce
@@ -12,16 +13,8 @@ const liquidarComissaoSchema = z.object({
     .min(0.01, "O valor pago deve ser maior que zero."),
 });
 
-async function verificarDono() {
-  const session = await auth();
-  if (!session?.user || (session.user as any).role !== "OWNER") {
-    throw new Error("Acesso negado.");
-  }
-  return session;
-}
-
 export async function liquidarComissao(barberId: string, formData: FormData) {
-  const session = await verificarDono();
+ const session = await verificarPermissao("verComissoesTodos");
   const ownerId = (session.user as any).id;
 
   const validacao = liquidarComissaoSchema.safeParse(Object.fromEntries(formData));

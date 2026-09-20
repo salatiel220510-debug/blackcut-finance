@@ -10,7 +10,7 @@ import IconeSino from "@/components/IconeSino";
 import { serieUltimosDias } from "@/lib/dashboardData";
 import { evolucaoUltimosMeses } from "@/lib/dashboardFinanceiro";
 import { calcularFechamento } from "@/lib/fechamentoMensal";
-import { limitesDoMesEspecifico } from "@/lib/datasBrasil";
+import { temPermissao } from "@/lib/permissoes";
 
 export default async function HomePage() {
   const session = await auth();
@@ -21,105 +21,90 @@ export default async function HomePage() {
   const nome = session.user?.name ?? "";
 
   const formatar = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+  const podeVerFaturamento = await temPermissao(role, "verFaturamentoCompleto");
 
+  let secaoBarbeiro = null;
   if (role === "BARBER") {
     const agora = new Date();
-    const { inicio, fimExclusivo } = limitesDoMesEspecifico(agora.getUTCFullYear(), agora.getUTCMonth());
+    const inicioMes = new Date(Date.UTC(agora.getUTCFullYear(), agora.getUTCMonth(), 1, 3, 0, 0));
+    const fimMesExclusivo = new Date(Date.UTC(agora.getUTCFullYear(), agora.getUTCMonth() + 1, 1, 3, 0, 0));
 
-    const agg = await prisma.transaction.aggregate({
-      where: { barberId: userId, type: "INCOME", deletedAt: null, date: { gte: inicio, lt: fimExclusivo } },
-      _sum: { commissionAmount: true, amount: true },
-      _count: true,
-    });
+    const [agg, serie] = await Promise.all([
+      prisma.transaction.aggregate({
+        where: { barberId: userId, type: "INCOME", deletedAt: null, date: { gte: inicioMes, lt: fimMesExclusivo } },
+        _sum: { commissionAmount: true, amount: true },
+        _count: true,
+      }),
+      serieUltimosDias(14, { barberId: userId }),
+    ]);
 
     const totalComissao = Number(agg._sum.commissionAmount ?? 0);
     const totalGerado = Number(agg._sum.amount ?? 0);
-    const serie = await serieUltimosDias(14, { barberId: userId });
 
-    return (
-      <div className="min-h-screen flex flex-col">
-        <SplashHome />
-        <main className="flex-1 max-w-4xl w-full mx-auto px-4 py-8">
-          <div className="flex items-center justify-between mb-1">
-            <h1 className="font-display text-2xl text-gold">Bem-vindo, {nome}</h1>
-            <Link href="/notificacoes" title="Avisos" className="text-gold-dark hover:text-gold">
-              <IconeSino size={26} />
-            </Link>
-          </div>
-          <p className="text-gray-400 mb-8">Resumo do seu desempenho na BlackCut — mês atual.</p>
+    secaoBarbeiro = (
+      <>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-10">
+          <Card titulo="Comissão do mês" valor={formatar(totalComissao)} destaque />
+          <Card titulo="Total gerado (mês)" valor={formatar(totalGerado)} />
+          <Card titulo="Serviços (mês)" valor={String(agg._count)} />
+        </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-10">
-            <Card titulo="Comissão do mês" valor={formatar(totalComissao)} destaque />
-            <Card titulo="Total gerado (mês)" valor={formatar(totalGerado)} />
-            <Card titulo="Serviços (mês)" valor={String(agg._count)} />
-          </div>
+        <div className="border border-gold-dark/40 bg-black-soft rounded-xl p-4 mb-10">
+          <h2 className="font-display text-lg text-gold mb-3">Últimos 14 dias</h2>
+          <GraficoLinhaCaixa dados={serie} mostrarComissao />
+        </div>
 
-          <div className="border border-gold-dark/40 bg-black-soft rounded-xl p-4 mb-10">
-            <h2 className="font-display text-lg text-gold mb-3">Últimos 14 dias</h2>
-            <GraficoLinhaCaixa dados={serie} mostrarComissao />
-          </div>
-
-          <div className="flex flex-wrap gap-3">
-            <BotaoGrande href="/caixa/comanda/nova" label="Registrar Serviço" />
-            <BotaoGrande href="/caixa" label="Ver Fluxo de Caixa" />
-          </div>
-        </main>
-        <Footer role={role} />
-      </div>
+        <div className="flex flex-wrap gap-3 mb-10">
+          <BotaoGrande href="/caixa/comanda/nova" label="Registrar Serviço" />
+          <BotaoGrande href="/caixa" label="Ver Fluxo de Caixa" />
+        </div>
+      </>
     );
   }
 
-  const agora = new Date();
+  let secaoDono = null;
+  if (podeVerFaturamento) {
+    const agora = new Date();
 
-  const [previaMes, entradasTotalAgg, saidasTotalAgg, comissoesAgg, settings, pendentesCount, serie, evolucaoMeses] = await Promise.all([
-    calcularFechamento(agora.getUTCFullYear(), agora.getUTCMonth()),
-    prisma.transaction.aggregate({ where: { type: "INCOME", deletedAt: null }, _sum: { amount: true } }),
-    prisma.transaction.aggregate({ where: { type: "EXPENSE", deletedAt: null }, _sum: { amount: true } }),
-    prisma.transaction.aggregate({
-      where: { type: "INCOME", deletedAt: null, commissionAmount: { not: null }, commissionSettled: false },
-      _sum: { commissionAmount: true },
-    }),
-    prisma.settings.findUnique({ where: { id: 1 } }),
-    prisma.user.count({ where: { status: "PENDING" } }),
-    serieUltimosDias(14),
-    evolucaoUltimosMeses(6),
-  ]);
+    const [previaMes, entradasTotalAgg, saidasTotalAgg, comissoesAgg, settings, pendentesCount, serie, evolucaoMeses] = await Promise.all([
+      calcularFechamento(agora.getUTCFullYear(), agora.getUTCMonth()),
+      prisma.transaction.aggregate({ where: { type: "INCOME", deletedAt: null }, _sum: { amount: true } }),
+      prisma.transaction.aggregate({ where: { type: "EXPENSE", deletedAt: null }, _sum: { amount: true } }),
+      prisma.transaction.aggregate({
+        where: { type: "INCOME", deletedAt: null, commissionAmount: { not: null }, commissionSettled: false },
+        _sum: { commissionAmount: true },
+      }),
+      prisma.settings.findUnique({ where: { id: 1 } }),
+      prisma.user.count({ where: { status: "PENDING" } }),
+      serieUltimosDias(14),
+      evolucaoUltimosMeses(6),
+    ]);
 
-  const entradasMes = previaMes.faturamentoBruto;
-  const saidasMes = previaMes.totalDespesas;
-  const totalComissoesPendentes = Number(comissoesAgg._sum.commissionAmount ?? 0);
+    const entradasMes = previaMes.faturamentoBruto;
+    const saidasMes = previaMes.totalDespesas;
+    const totalComissoesPendentes = Number(comissoesAgg._sum.commissionAmount ?? 0);
 
-  const totalEntradasGeral = Number(entradasTotalAgg._sum.amount ?? 0);
-  const totalSaidasGeral = Number(saidasTotalAgg._sum.amount ?? 0);
-  const fundosAcumulados = totalEntradasGeral - totalSaidasGeral - totalComissoesPendentes;
-  const saldoBancario = settings ? Number(settings.saldoBancario) : 0;
-  const diferenca = fundosAcumulados - saldoBancario;
+    const totalEntradasGeral = Number(entradasTotalAgg._sum.amount ?? 0);
+    const totalSaidasGeral = Number(saidasTotalAgg._sum.amount ?? 0);
+    const fundosAcumulados = totalEntradasGeral - totalSaidasGeral - totalComissoesPendentes;
+    const saldoBancario = settings ? Number(settings.saldoBancario) : 0;
+    const diferenca = fundosAcumulados - saldoBancario;
 
-  return (
-    <div className="min-h-screen flex flex-col">
-      <SplashHome />
-      <main className="flex-1 max-w-4xl w-full mx-auto px-4 py-8">
-        <div className="flex items-center justify-between mb-1">
-          <h1 className="font-display text-2xl text-gold">Bem-vindo, {nome}</h1>
-          <Link href="/notificacoes" title="Avisos" className="text-gold-dark hover:text-gold">
-            <IconeSino size={26} />
-          </Link>
-        </div>
-        <p className="text-gray-400 mb-8">Visão geral do negócio — mês atual.</p>
-
+    secaoDono = (
+      <>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
           <Card titulo="Entradas (mês)" valor={formatar(entradasMes)} />
           <Card titulo="Saídas (mês)" valor={formatar(saidasMes)} />
           <Card titulo="Comissões pendentes" valor={formatar(totalComissoesPendentes)} />
-          <Card titulo="Serviços Registrados Mensalmente" valor={formatar(entradasMes - saidasMes)} destaque />
+          <Card titulo="Fundos da Barbearia" valor={formatar(fundosAcumulados)} destaque />
         </div>
 
         <div className="border border-gold-dark/40 bg-black-soft rounded-xl p-4 mb-8">
-          <h2 className="font-display text-lg text-gold mb-3">Serviços Registrados Mensalmente x Saldo Bancário</h2>
+          <h2 className="font-display text-lg text-gold mb-3">Fundos x Saldo Bancário</h2>
           <table className="w-full text-sm">
             <tbody>
               <tr className="border-b border-gold-dark/20">
-                <td className="py-2 text-gray-400">Serviços Registrados Mensalmente</td>
+                <td className="py-2 text-gray-400">Fundos acumulados (calculado)</td>
                 <td className="py-2 text-right font-bold text-gold">{formatar(fundosAcumulados)}</td>
               </tr>
               <tr className="border-b border-gold-dark/20">
@@ -136,7 +121,7 @@ export default async function HomePage() {
           </table>
         </div>
 
-        {pendentesCount > 0 && (
+        {role === "OWNER" && pendentesCount > 0 && (
           <Link
             href="/admin/aprovacoes"
             className="block mb-8 border border-gold rounded-lg px-4 py-3 text-gold bg-gold/10 hover:bg-gold/20 transition-colors"
@@ -157,11 +142,31 @@ export default async function HomePage() {
           />
         </div>
 
-        <div className="flex flex-wrap gap-3">
-          <BotaoGrande href="/caixa/comanda/nova" label="Novo Lançamento" />
-          <BotaoGrande href="/caixa" label="Ver Fluxo de Caixa" />
-          <BotaoGrande href="/admin/configuracoes" label="Preços & Comissão" />
+        {role === "OWNER" && (
+          <div className="flex flex-wrap gap-3">
+            <BotaoGrande href="/caixa/comanda/nova" label="Novo Lançamento" />
+            <BotaoGrande href="/caixa" label="Ver Fluxo de Caixa" />
+            <BotaoGrande href="/admin/configuracoes" label="Preços & Comissão" />
+          </div>
+        )}
+      </>
+    );
+  }
+
+  return (
+    <div className="min-h-screen flex flex-col">
+      <SplashHome />
+      <main className="flex-1 max-w-4xl w-full mx-auto px-4 py-8">
+        <div className="flex items-center justify-between mb-1">
+          <h1 className="font-display text-2xl text-gold">Bem-vindo, {nome}</h1>
+          <Link href="/notificacoes" title="Avisos" className="text-gold-dark hover:text-gold">
+            <IconeSino size={26} />
+          </Link>
         </div>
+        <p className="text-gray-400 mb-8">{role === "OWNER" ? "Visão geral do negócio — mês atual." : "Resumo do seu desempenho na BlackCut."}</p>
+
+        {secaoBarbeiro}
+        {secaoDono}
       </main>
       <Footer role={role} />
     </div>

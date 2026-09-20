@@ -3,6 +3,7 @@
 import { auth } from "@/auth";
 import { revalidatePath } from "next/cache";
 import { fecharMes } from "@/lib/fechamentoMensal";
+import { verificarPermissao } from "@/lib/permissoes";
 
 async function verificarDono() {
   const session = await auth();
@@ -12,7 +13,7 @@ async function verificarDono() {
 }
 
 export async function fecharMesManual(formData: FormData) {
-  await verificarDono();
+  await verificarPermissao("verFechamentoMensal");
 
   const mesString = formData.get("mes") as string;
   if (!mesString) return { erro: "Selecione um mês." };

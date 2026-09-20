@@ -6,6 +6,7 @@ import { revalidatePath } from "next/cache";
 import { after } from "next/server";
 import { enviarPushParaDonos, enviarPushParaTodosAprovados } from "@/lib/push";
 import { diaBrasilDeData, limitesDoDiaEspecifico } from "@/lib/datasBrasil";
+import { temPermissao } from "@/lib/permissoes";
 
 export async function excluirTransacao(id: string) {
   const session = await auth();
@@ -54,7 +55,10 @@ export async function excluirTransacao(id: string) {
 export async function fecharDiaAction(data: string) {
   const session = await auth();
   if (!session?.user) return { erro: "Não autenticado." };
-  if ((session.user as any).role !== "OWNER") return { erro: "Apenas o dono pode fechar a barbearia." };
+
+  const role = (session.user as any).role;
+  const podeFechar = await temPermissao(role, "fecharBarbearia");
+  if (!podeFechar) return { erro: "Você não tem permissão para fechar a barbearia." };
 
   const userId = (session.user as any).id;
   const [ano, mes, dia] = data.split("-").map(Number);

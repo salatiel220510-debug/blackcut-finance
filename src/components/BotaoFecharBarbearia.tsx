@@ -7,7 +7,7 @@ type ItemResumo = { category: string; amount: number; barberNome?: string | null
 
 export default function BotaoFecharBarbearia({
   data,
-  role,
+  podeFechar,
   totalEntradas,
   totalSaidas,
   totalComissoes,
@@ -16,7 +16,7 @@ export default function BotaoFecharBarbearia({
   jaFechado,
 }: {
   data: string;
-  role: string;
+  podeFechar: boolean;
   totalEntradas: number;
   totalSaidas: number;
   totalComissoes: number;
@@ -101,7 +101,7 @@ export default function BotaoFecharBarbearia({
 
             {fechado ? (
               <p className="text-green-400 text-sm text-center mb-2">✓ Este dia já foi fechado.</p>
-            ) : role === "OWNER" ? (
+            ) : podeFechar ? (
               <>
                 <p className="text-gray-400 text-xs text-center mb-3">
                   Ao confirmar, os barbeiros não poderão mais excluir lançamentos deste dia, e todos receberão uma notificação.
@@ -111,7 +111,7 @@ export default function BotaoFecharBarbearia({
                 </button>
               </>
             ) : (
-              <p className="text-gray-400 text-xs text-center mb-2">Apenas o dono pode fechar a barbearia.</p>
+              <p className="text-gray-400 text-xs text-center mb-2">Você não tem permissão para fechar a barbearia.</p>
             )}
             {mensagem && <p className="text-gray-300 text-xs text-center mb-2">{mensagem}</p>}
 

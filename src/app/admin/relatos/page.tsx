@@ -3,12 +3,15 @@ import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import Footer from "@/components/Footer";
 import LinhaRelato from "./form";
+import { temPermissao } from "@/lib/permissoes";
 
 const TIPO_LABEL: Record<string, string> = { PROBLEMA: "Problema", MELHORIA: "Melhoria", OUTRO: "Outro" };
 
 export default async function RelatosPage() {
   const session = await auth();
   if (!session?.user) redirect("/login");
+   const role = (session.user as any).role;
+  if (!(await temPermissao(role, "verRelatosEquipe"))) redirect("/");
   if ((session.user as any).role !== "OWNER") redirect("/");
 
   const relatos = await prisma.report.findMany({

@@ -6,7 +6,15 @@ import ModalFecharCaixa from "./ModalFecharCaixa";
 
 type SessaoInfo = { id: string; abertoPorNome: string; abertoEm: string; fundoTroco: number } | null;
 
-export default function StatusCaixa({ sessao }: { sessao: SessaoInfo }) {
+export default function StatusCaixa({
+  sessao,
+  podeAbrirFechar,
+  podeSangriaSuprimento,
+}: {
+  sessao: SessaoInfo;
+  podeAbrirFechar: boolean;
+  podeSangriaSuprimento: boolean;
+}) {
   const [modalAberto, setModalAberto] = useState<"abrir" | "sangria" | "suprimento" | "fechar" | null>(null);
   const formatar = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
@@ -22,23 +30,33 @@ export default function StatusCaixa({ sessao }: { sessao: SessaoInfo }) {
               </p>
             </div>
             <div className="flex gap-2 flex-wrap">
-              <button onClick={() => setModalAberto("sangria")} className="border border-gold-dark rounded-lg px-3 py-1.5 text-sm text-gold hover:border-gold transition-colors">
-                Sangria
-              </button>
-              <button onClick={() => setModalAberto("suprimento")} className="border border-gold-dark rounded-lg px-3 py-1.5 text-sm text-gold hover:border-gold transition-colors">
-                Suprimento
-              </button>
-              <button onClick={() => setModalAberto("fechar")} className="bg-gold text-black-deep font-semibold rounded-lg px-3 py-1.5 text-sm hover:bg-gold-light transition-colors">
-                Fechar Caixa
-              </button>
+              {podeSangriaSuprimento && (
+                <>
+                  <button onClick={() => setModalAberto("sangria")} className="border border-gold-dark rounded-lg px-3 py-1.5 text-sm text-gold hover:border-gold transition-colors">
+                    Sangria
+                  </button>
+                  <button onClick={() => setModalAberto("suprimento")} className="border border-gold-dark rounded-lg px-3 py-1.5 text-sm text-gold hover:border-gold transition-colors">
+                    Suprimento
+                  </button>
+                </>
+              )}
+              {podeAbrirFechar && (
+                <button onClick={() => setModalAberto("fechar")} className="bg-gold text-black-deep font-semibold rounded-lg px-3 py-1.5 text-sm hover:bg-gold-light transition-colors">
+                  Fechar Caixa
+                </button>
+              )}
             </div>
           </>
         ) : (
           <>
             <p className="text-red-300 text-sm font-semibold">🔴 Caixa fechado</p>
-            <button onClick={() => setModalAberto("abrir")} className="bg-gold text-black-deep font-semibold rounded-lg px-4 py-2 text-sm hover:bg-gold-light transition-colors">
-              Abrir Caixa
-            </button>
+            {podeAbrirFechar ? (
+              <button onClick={() => setModalAberto("abrir")} className="bg-gold text-black-deep font-semibold rounded-lg px-4 py-2 text-sm hover:bg-gold-light transition-colors">
+                Abrir Caixa
+              </button>
+            ) : (
+              <p className="text-gray-500 text-xs">Aguardando o dono ou um responsável abrir o caixa.</p>
+            )}
           </>
         )}
       </div>

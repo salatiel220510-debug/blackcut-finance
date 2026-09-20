@@ -6,6 +6,7 @@ import { revalidatePath } from "next/cache";
 import { relatoSchema } from "@/lib/schemas";
 import { enviarPushParaDonos, enviarPushParaUsuario } from "@/lib/push";
 import { estaEmModoDemo } from "@/lib/demoGuard";
+import { verificarPermissao } from "@/lib/permissoes";
 
 export async function criarRelato(formData: FormData) {
   const session = await auth();
@@ -13,7 +14,6 @@ export async function criarRelato(formData: FormData) {
 
   const validacao = relatoSchema.safeParse(Object.fromEntries(formData));
   if (!validacao.success) return { erro: validacao.error.issues[0].message };
-
   if (await estaEmModoDemo()) return { sucesso: true, demo: true };
 
   const { type, title, description } = validacao.data;
@@ -31,8 +31,7 @@ export async function criarRelato(formData: FormData) {
 }
 
 export async function alternarStatusRelato(id: string) {
-  const session = await auth();
-  if (!session?.user || (session.user as any).role !== "OWNER") throw new Error("Acesso negado.");
+  const session = await verificarPermissao("verRelatosEquipe");
   if (await estaEmModoDemo()) return;
 
   const relato = await prisma.report.findUnique({ where: { id } });
@@ -54,8 +53,7 @@ export async function alternarStatusRelato(id: string) {
 }
 
 export async function excluirRelato(id: string) {
-  const session = await auth();
-  if (!session?.user || (session.user as any).role !== "OWNER") throw new Error("Acesso negado.");
+  await verificarPermissao("verRelatosEquipe");
   if (await estaEmModoDemo()) return;
 
   await prisma.report.delete({ where: { id } });

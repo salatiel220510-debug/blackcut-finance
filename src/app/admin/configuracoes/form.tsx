@@ -11,11 +11,13 @@ import {
   atualizarEnvelopes,
   atualizarMetas,
   atualizarTaxas,
+  atualizarPermissoes,
   criarCategoriaDespesa,
   atualizarBudgetCategoria,
   desativarCategoriaDespesa,
 } from "./actions";
 import DemoLoginForm from "@/components/DemoLoginForm";
+import { PERMISSOES_LABEL, ChavePermissao } from "@/lib/permissoesTipos";
 
 type Servico = {
   id: string;
@@ -46,7 +48,13 @@ const ABAS = [
   { id: "monetario", label: "Controle Monetário" },
   { id: "envelope", label: "Envelope e Metas" },
   { id: "categorias", label: "Categorias" },
+  { id: "permissoes", label: "Permissões" },
 ] as const;
+
+const CHAVES_PERMISSAO: ChavePermissao[] = [
+  "verFaturamentoCompleto", "fecharBarbearia", "verFidelidadeGestao", "verFechamentoMensal",
+  "abrirFecharCaixa", "registrarSangriaSuprimento", "verRelatosEquipe", "verComissoesTodos", "verCupons",
+];
 
 export default function ConfiguracoesForm({
   comissaoAtual,
@@ -54,6 +62,7 @@ export default function ConfiguracoesForm({
   envelopes,
   metas,
   taxas,
+  permissoes,
   servicos,
   categorias,
 }: {
@@ -62,6 +71,7 @@ export default function ConfiguracoesForm({
   envelopes: { operacional: number; proLabore: number; reserva: number };
   metas: { proLabore: number | null; reserva: number | null };
   taxas: { pix: number; debito: number; credito: number };
+  permissoes: Record<ChavePermissao, boolean>;
   servicos: Servico[];
   categorias: Categoria[];
 }) {
@@ -96,6 +106,16 @@ export default function ConfiguracoesForm({
     e.preventDefault();
     const resultado = await atualizarMetas(new FormData(e.currentTarget));
     setMensagem(resultado?.erro || "Metas atualizadas!");
+  }
+
+  async function handlePermissoes(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const resultado = await atualizarPermissoes(new FormData(e.currentTarget));
+    setMensagem(
+      "erro" in resultado && typeof resultado.erro === "string"
+        ? resultado.erro
+        : "Permissões atualizadas!",
+    );
   }
 
   async function handleNovoServico(e: React.FormEvent<HTMLFormElement>) {
@@ -142,9 +162,6 @@ export default function ConfiguracoesForm({
 
           <section className="border border-gold-dark/40 bg-black-soft rounded-xl p-5">
             <h2 className="font-display text-lg text-gold mb-4">Saldo Bancário Atual</h2>
-            <p className="text-gray-400 text-sm mb-3">
-              Valor real que a conta bancária da barbearia possui hoje — usado só como referência.
-            </p>
             <form onSubmit={handleSaldo} className="flex gap-2">
               <input name="saldoBancario" type="number" step="0.01" defaultValue={saldoAtual} required className={inputClass} />
               <button type="submit" className="bg-gold text-black-deep font-semibold rounded-lg px-4 hover:bg-gold-light transition-colors whitespace-nowrap">
@@ -155,7 +172,6 @@ export default function ConfiguracoesForm({
 
           <section className="border border-gold-dark/40 bg-black-soft rounded-xl p-5">
             <h2 className="font-display text-lg text-gold mb-4">Taxas de Pagamento</h2>
-            <p className="text-gray-400 text-sm mb-3">Percentual cobrado pela maquininha/Pix em cada forma de recebimento.</p>
             <form onSubmit={handleTaxas} className="flex flex-col gap-3">
               <div>
                 <label className="text-sm text-gray-300 block mb-1">Taxa Pix (%)</label>
@@ -187,9 +203,6 @@ export default function ConfiguracoesForm({
         <div className="flex flex-col gap-6">
           <section className="border border-gold-dark/40 bg-black-soft rounded-xl p-5">
             <h2 className="font-display text-lg text-gold mb-2">Sistema de Envelopes</h2>
-            <p className="text-gray-400 text-sm mb-4">
-              No fechamento mensal, o lucro líquido é dividido automaticamente entre estes três percentuais. A soma precisa ser exatamente 100%.
-            </p>
             <form onSubmit={handleEnvelopes} className="flex flex-col gap-3">
               <div>
                 <label className="text-sm text-gray-300 block mb-1">Operacional (%)</label>
@@ -237,7 +250,6 @@ export default function ConfiguracoesForm({
                 <CategoriaLinha key={c.id} categoria={c} />
               ))}
             </div>
-
             <h3 className="font-display text-base text-gold mt-6 mb-3">Adicionar nova categoria</h3>
             <form onSubmit={handleNovaCategoria} className="flex flex-col gap-2">
               <input name="name" placeholder="Nome da categoria" required className={inputClass} />
@@ -261,7 +273,6 @@ export default function ConfiguracoesForm({
                 <ServicoLinha key={s.id} servico={s} />
               ))}
             </div>
-
             <h3 className="font-display text-base text-gold mt-6 mb-3">Adicionar novo serviço</h3>
             <form onSubmit={handleNovoServico} className="flex flex-col sm:flex-row gap-2">
               <input name="name" placeholder="Nome do serviço" required className={inputClass} />
@@ -272,6 +283,26 @@ export default function ConfiguracoesForm({
             </form>
           </section>
         </div>
+      )}
+
+      {aba === "permissoes" && (
+        <section className="border border-gold-dark/40 bg-black-soft rounded-xl p-5">
+          <h2 className="font-display text-lg text-gold mb-2">O que os barbeiros podem ver e fazer</h2>
+          <p className="text-gray-400 text-sm mb-4">
+            Além do que todo barbeiro já pode fazer (comanda, perfil, avisos), marque abaixo o que mais você quer liberar.
+          </p>
+          <form onSubmit={handlePermissoes} className="flex flex-col gap-3">
+            {CHAVES_PERMISSAO.map((chave) => (
+              <label key={chave} className="flex items-center gap-3 border border-gold-dark/20 rounded-lg p-3 cursor-pointer hover:border-gold-dark/50 transition-colors">
+                <input type="checkbox" name={chave} defaultChecked={permissoes[chave]} className="w-5 h-5 accent-current text-gold" />
+                <span className="text-gray-200 text-sm">{PERMISSOES_LABEL[chave]}</span>
+              </label>
+            ))}
+            <button type="submit" className="bg-gold text-black-deep font-semibold rounded-lg px-4 py-2 hover:bg-gold-light transition-colors mt-2">
+              Salvar Permissões
+            </button>
+          </form>
+        </section>
       )}
 
       {mensagem && <p className="text-gold text-sm">{mensagem}</p>}
@@ -328,7 +359,6 @@ function ServicoLinha({ servico }: { servico: Servico }) {
           Remover
         </button>
       </div>
-
       <form
         className="flex gap-2 mb-3"
         onSubmit={async (e) => {
@@ -342,7 +372,6 @@ function ServicoLinha({ servico }: { servico: Servico }) {
           Atualizar
         </button>
       </form>
-
       {descontoAtivo ? (
         <div className="flex items-center justify-between bg-gold/10 border border-gold rounded-lg px-3 py-2">
           <span className="text-gold text-sm">

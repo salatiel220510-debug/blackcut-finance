@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import Footer from "@/components/Footer";
 import ConfiguracoesForm from "./form";
+import { buscarPermissoesBarbeiro } from "@/lib/permissoes";
 
 export default async function ConfiguracoesPage() {
   const session = await auth();
@@ -12,6 +13,7 @@ export default async function ConfiguracoesPage() {
   const settings = await prisma.settings.findUnique({ where: { id: 1 } });
   const servicos = await prisma.serviceType.findMany({ orderBy: { name: "asc" } });
   const categorias = await prisma.expenseCategory.findMany({ orderBy: { name: "asc" } });
+  const permissoes = await buscarPermissoesBarbeiro();
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -34,6 +36,7 @@ export default async function ConfiguracoesPage() {
             debito: settings ? Number(settings.taxaDebito) : 0,
             credito: settings ? Number(settings.taxaCredito) : 0,
           }}
+          permissoes={permissoes}
           servicos={servicos.map((s) => ({
             id: s.id,
             name: s.name,

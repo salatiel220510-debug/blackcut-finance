@@ -10,6 +10,7 @@ import { agruparPorComanda } from "@/lib/agruparTransacoes";
 import { limitesDoDiaEspecifico, hojeBrasilString } from "@/lib/datasBrasil";
 import { calcularFechamento } from "@/lib/fechamentoMensal";
 import { sessaoAberta } from "@/lib/caixaSessao";
+import { temPermissao } from "@/lib/permissoes";
 
 export default async function CaixaPage({ searchParams }: { searchParams: Promise<{ data?: string }> }) {
   const session = await auth();
@@ -17,6 +18,12 @@ export default async function CaixaPage({ searchParams }: { searchParams: Promis
 
   const role = (session.user as any).role;
   const userId = (session.user as any).id;
+
+    const [podeFechar, podeAbrirFecharCaixa, podeSangriaSuprimento] = await Promise.all([
+    temPermissao(role, "fecharBarbearia"),
+    temPermissao(role, "abrirFecharCaixa"),
+    temPermissao(role, "registrarSangriaSuprimento"),
+  ]);
 
   const params = await searchParams;
   const dataSelecionada = params.data || hojeBrasilString();
@@ -98,7 +105,7 @@ export default async function CaixaPage({ searchParams }: { searchParams: Promis
       <main className="flex-1 max-w-4xl w-full mx-auto px-4 py-8">
         <h1 className="font-display text-2xl text-gold mb-6">Fluxo de Caixa</h1>
 
-        <StatusCaixa sessao={sessaoInfo} />
+              <StatusCaixa sessao={sessaoInfo} podeAbrirFechar={podeAbrirFecharCaixa} podeSangriaSuprimento={podeSangriaSuprimento} />
 
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
           <Card titulo="Entradas (mês)" valor={formatar(entradasMes)} />
@@ -113,7 +120,7 @@ export default async function CaixaPage({ searchParams }: { searchParams: Promis
             <SeletorData dataAtual={dataSelecionada} />
             <BotaoFecharBarbearia
               data={dataSelecionada}
-              role={role}
+              podeFechar={podeFechar}
               totalEntradas={totalEntradasDia}
               totalSaidas={totalSaidasDia}
               totalComissoes={totalComissoesDia}

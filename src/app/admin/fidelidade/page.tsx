@@ -3,11 +3,13 @@ import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import Footer from "@/components/Footer";
 import TabelaFidelidade from "./form";
+import { temPermissao } from "@/lib/permissoes";
 
 export default async function FidelidadePage() {
   const session = await auth();
   if (!session?.user) redirect("/login");
-  if ((session.user as any).role !== "OWNER") redirect("/");
+   const role = (session.user as any).role;
+  if (!(await temPermissao(role, "verFidelidadeGestao"))) redirect("/");
 
   const cartoes = await prisma.loyaltyCard.findMany({ orderBy: { updatedAt: "desc" } });
 

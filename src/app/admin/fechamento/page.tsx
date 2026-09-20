@@ -14,11 +14,13 @@ import GraficoEvolucaoMensal from "@/components/GraficoEvolucaoMensal";
 import BarraProgresso from "@/components/BarraProgresso";
 import FormFechamento from "./form";
 import ItemFechamentoHistorico from "./ItemFechamentoHistorico";
+import { temPermissao } from "@/lib/permissoes";
 
 export default async function FechamentoPage() {
   const session = await auth();
   if (!session?.user) redirect("/login");
-  if ((session.user as any).role !== "OWNER") redirect("/");
+   const role = (session.user as any).role;
+  if (!(await temPermissao(role, "verFechamentoMensal"))) redirect("/");
 
   const agora = new Date();
 
