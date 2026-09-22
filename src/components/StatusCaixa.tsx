@@ -16,7 +16,19 @@ export default function StatusCaixa({
   podeSangriaSuprimento: boolean;
 }) {
   const [modalAberto, setModalAberto] = useState<"abrir" | "sangria" | "suprimento" | "fechar" | null>(null);
+  const [sessionIdFechando, setSessionIdFechando] = useState<string | null>(null);
   const formatar = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+
+  function abrirFechamento() {
+    if (!sessao) return;
+    setSessionIdFechando(sessao.id);
+    setModalAberto("fechar");
+  }
+
+  function fecharModalFechamento() {
+    setModalAberto(null);
+    setSessionIdFechando(null);
+  }
 
   return (
     <>
@@ -41,7 +53,7 @@ export default function StatusCaixa({
                 </>
               )}
               {podeAbrirFechar && (
-                <button onClick={() => setModalAberto("fechar")} className="bg-gold text-black-deep font-semibold rounded-lg px-3 py-1.5 text-sm hover:bg-gold-light transition-colors">
+                <button onClick={abrirFechamento} className="bg-gold text-black-deep font-semibold rounded-lg px-3 py-1.5 text-sm hover:bg-gold-light transition-colors">
                   Fechar Caixa
                 </button>
               )}
@@ -64,7 +76,9 @@ export default function StatusCaixa({
       {modalAberto === "abrir" && <ModalAbrirCaixa onFechar={() => setModalAberto(null)} />}
       {modalAberto === "sangria" && <ModalMovimentoCaixa tipo="SANGRIA" onFechar={() => setModalAberto(null)} />}
       {modalAberto === "suprimento" && <ModalMovimentoCaixa tipo="SUPRIMENTO" onFechar={() => setModalAberto(null)} />}
-      {modalAberto === "fechar" && sessao && <ModalFecharCaixa sessionId={sessao.id} onFechar={() => setModalAberto(null)} />}
+      {modalAberto === "fechar" && sessionIdFechando && (
+        <ModalFecharCaixa sessionId={sessionIdFechando} onFechar={fecharModalFechamento} />
+      )}
     </>
   );
 }
