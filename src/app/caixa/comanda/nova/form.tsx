@@ -20,11 +20,13 @@ const inputClass = "bg-black-deep border border-gold-dark/40 rounded-lg px-3 py-
 
 export default function FormComanda({
   role,
+  podeDespesas,
   barbeiros,
   servicos,
   categoriasDespesa,
 }: {
   role: string;
+  podeDespesas: boolean;
   barbeiros: Barbeiro[];
   servicos: Servico[];
   categoriasDespesa: CategoriaDespesa[];
@@ -114,7 +116,7 @@ export default function FormComanda({
 
   return (
     <div className="flex flex-col gap-4 border border-gold-dark/40 bg-black-soft rounded-xl p-6">
-      {role === "OWNER" && (
+            {podeDespesas && (
         <div className="flex gap-2">
           <button type="button" onClick={() => setTipoItemAtual("INCOME")}
             className={`flex-1 rounded-lg px-3 py-1.5 text-sm font-semibold border ${tipoItemAtual === "INCOME" ? "bg-gold text-black-deep border-gold" : "bg-black-deep text-gray-300 border-gold-dark/40"}`}>

@@ -3,12 +3,14 @@ import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import Footer from "@/components/Footer";
 import FormComanda from "./form";
+import { temPermissao } from "@/lib/permissoes";
 
 export default async function NovaComandaPage() {
   const session = await auth();
   if (!session?.user) redirect("/login");
 
   const role = (session.user as any).role;
+  const podeDespesas = await temPermissao(role, "criarDespesasComanda");
 
   const barbeiros = role === "OWNER"
     ? await prisma.user.findMany({
@@ -23,7 +25,7 @@ export default async function NovaComandaPage() {
     orderBy: { name: "asc" },
   });
 
-  const categoriasDespesa = role === "OWNER"
+  const categoriasDespesa = podeDespesas
     ? await prisma.expenseCategory.findMany({ where: { active: true }, orderBy: { name: "asc" } })
     : [];
 
@@ -52,6 +54,7 @@ export default async function NovaComandaPage() {
         <h1 className="font-display text-2xl text-gold mb-6">Nova Comanda</h1>
         <FormComanda
           role={role}
+          podeDespesas={podeDespesas}
           barbeiros={barbeiros}
           servicos={servicos}
           categoriasDespesa={categoriasDespesa.map((c) => ({ id: c.id, name: c.name }))}

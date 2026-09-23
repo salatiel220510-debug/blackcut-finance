@@ -5,7 +5,7 @@ import { consultarPreviaFechamento } from "@/app/caixa/sessao/preview-actions";
 import ComprovanteFechamento from "./ComprovanteFechamento";
 
 type Previa = {
-  fundoTroco: number; totalDinheiro: number; totalDigital: number; totalSaidasDinheiro: number;
+  fundoTroco: number; totalDinheiro: number; totalDigital: number; totalTaxas: number; totalSaidasDinheiro: number;
   totalSangrias: number; totalSuprimentos: number; dinheiroEsperado: number; cartaoEsperado: number;
   clientesAtendidos: number; duracao: string;
 };
@@ -68,7 +68,8 @@ export default function ModalFecharCaixa({ sessionId, onFechar }: { sessionId: s
         <div className="grid grid-cols-2 gap-2 text-sm mb-4">
           <InfoLinha label="Fundo de troco" valor={formatar(previa.fundoTroco)} />
           <InfoLinha label="Entradas dinheiro" valor={formatar(previa.totalDinheiro)} />
-          <InfoLinha label="Entradas Pix/cartão" valor={formatar(previa.totalDigital)} />
+          <InfoLinha label="Pix/cartão (bruto)" valor={formatar(previa.totalDigital)} />
+          <InfoLinha label="Taxas descontadas" valor={formatar(previa.totalTaxas)} />
           <InfoLinha label="Saídas em dinheiro" valor={formatar(previa.totalSaidasDinheiro)} />
           <InfoLinha label="Sangrias" valor={formatar(previa.totalSangrias)} />
           <InfoLinha label="Suprimentos" valor={formatar(previa.totalSuprimentos)} />
@@ -93,7 +94,7 @@ export default function ModalFecharCaixa({ sessionId, onFechar }: { sessionId: s
             )}
           </div>
           <div>
-            <label className="text-sm text-gray-300 block mb-1">Quanto bateu nos comprovantes de Pix/cartão?</label>
+            <label className="text-sm text-gray-300 block mb-1">Quanto bateu nos comprovantes de Pix/cartão? (valor líquido, já com a taxa descontada)</label>
             <input name="contagemCartao" type="number" step="0.01" min="0" required value={contagemCartao} onChange={(e) => setContagemCartao(e.target.value)}
               className="bg-black-deep border border-gold-dark/40 rounded-lg px-3 py-2 text-white w-full" />
             {contagemCartao && (

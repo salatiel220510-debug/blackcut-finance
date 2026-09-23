@@ -6,7 +6,7 @@ import SeletorDataPopover from "@/components/SeletorDataPopover";
 import { paraStringISO } from "@/components/Calendario";
 
 type Previa = {
-  fundoTroco: number; totalDinheiro: number; totalDigital: number; totalSaidasDinheiro: number;
+  fundoTroco: number; totalDinheiro: number; totalDigital: number; totalTaxas: number; totalSaidasDinheiro: number;
   totalSangrias: number; totalSuprimentos: number; dinheiroEsperado: number; cartaoEsperado: number;
   clientesAtendidos: number; duracao: string;
 };

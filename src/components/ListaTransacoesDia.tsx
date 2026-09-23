@@ -22,6 +22,8 @@ export type TransacaoView = {
   podeExcluir: boolean;
 };
 
+type Taxas = { pix: number; debito: number; credito: number };
+
 const PAGAMENTO_LABEL: Record<string, string> = {
   DINHEIRO: "Dinheiro",
   PIX: "Pix",
@@ -33,9 +35,27 @@ function formatar(v: number) {
   return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 }
 
-export default function ListaTransacoesDia({ servicos, gastos }: { servicos: ItemExibicao[]; gastos: ItemExibicao[] }) {
+function taxaDoMetodo(metodo: string | null, taxas: Taxas) {
+  if (metodo === "PIX") return taxas.pix;
+  if (metodo === "CARTAO_DEBITO") return taxas.debito;
+  if (metodo === "CARTAO_CREDITO") return taxas.credito;
+  return 0;
+}
+
+export default function ListaTransacoesDia({
+  servicos, gastos, taxas,
+}: {
+  servicos: ItemExibicao[];
+  gastos: ItemExibicao[];
+  taxas: Taxas;
+}) {
   const [selecionado, setSelecionado] = useState<ItemExibicao | null>(null);
   const [mostrarCupom, setMostrarCupom] = useState(false);
+
+  const metodoPagamentoSelecionado = selecionado?.itens[0]?.paymentMethod ?? null;
+  const percentualTaxa = taxaDoMetodo(metodoPagamentoSelecionado, taxas);
+  const valorTaxa = selecionado ? selecionado.amount * (percentualTaxa / 100) : 0;
+  const temTaxa = selecionado?.itens[0]?.type === "INCOME" && percentualTaxa > 0;
 
   return (
     <>
@@ -111,6 +131,12 @@ export default function ListaTransacoesDia({ servicos, gastos }: { servicos: Ite
                   {selecionado.itens[0]?.paymentMethod && (
                     <Linha label="Pagamento" valor={PAGAMENTO_LABEL[selecionado.itens[0].paymentMethod!] ?? selecionado.itens[0].paymentMethod!} />
                   )}
+                  {temTaxa && (
+                    <>
+                      <Linha label={`Taxa (${percentualTaxa}%)`} valor={`- ${formatar(valorTaxa)}`} />
+                      <Linha label="Valor líquido" valor={formatar(selecionado.amount - valorTaxa)} destaque />
+                    </>
+                  )}
                   {selecionado.itens[0]?.observacao && <Linha label="Observação" valor={selecionado.itens[0].observacao} />}
                 </div>
 
@@ -147,6 +173,12 @@ export default function ListaTransacoesDia({ servicos, gastos }: { servicos: Ite
                   {selecionado.itens[0].clienteNome && <Linha label="Cliente" valor={selecionado.itens[0].clienteNome} />}
                   {selecionado.itens[0].paymentMethod && (
                     <Linha label="Pagamento" valor={PAGAMENTO_LABEL[selecionado.itens[0].paymentMethod] ?? selecionado.itens[0].paymentMethod} />
+                  )}
+                  {temTaxa && (
+                    <>
+                      <Linha label={`Taxa (${percentualTaxa}%)`} valor={`- ${formatar(valorTaxa)}`} />
+                      <Linha label="Valor líquido" valor={formatar(selecionado.amount - valorTaxa)} destaque />
+                    </>
                   )}
                   {selecionado.itens[0].observacao && <Linha label="Observação" valor={selecionado.itens[0].observacao} />}
                   {selecionado.itens[0].description && <Linha label="Descrição" valor={selecionado.itens[0].description} />}

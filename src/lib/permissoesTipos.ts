@@ -7,7 +7,8 @@ export type ChavePermissao =
   | "registrarSangriaSuprimento"
   | "verRelatosEquipe"
   | "verComissoesTodos"
-  | "verCupons";
+  | "verCupons"
+  | "criarDespesasComanda";
 
 export const PERMISSOES_LABEL: Record<ChavePermissao, string> = {
   verFaturamentoCompleto: "Ver faturamento e indicadores da barbearia (Início)",
@@ -19,4 +20,5 @@ export const PERMISSOES_LABEL: Record<ChavePermissao, string> = {
   verRelatosEquipe: "Ver e gerenciar os relatos de toda a equipe",
   verComissoesTodos: "Ver e pagar comissões de todos os barbeiros",
   verCupons: "Ver cupons e horas trabalhadas da barbearia",
+  criarDespesasComanda: "Registrar despesas na Comanda (além de serviços)",
 };

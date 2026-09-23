@@ -8,6 +8,7 @@ import { enviarPushParaDonos } from "@/lib/push";
 import { verificarAlertaOrcamento } from "@/lib/alertasOrcamento";
 import { comandaSchema } from "@/lib/schemas";
 import { estaEmModoDemo } from "@/lib/demoGuard";
+import { temPermissao } from "@/lib/permissoes";
 
 export async function registrarComanda(dadosBrutos: unknown) {
   const session = await auth();
@@ -26,8 +27,11 @@ export async function registrarComanda(dadosBrutos: unknown) {
   const temItemIncome = itens.some((i) => i.tipo === "INCOME");
   const temItemExpense = itens.some((i) => i.tipo === "EXPENSE");
 
-  if (role === "BARBER" && temItemExpense) {
-    return { erro: "Barbeiros só podem registrar serviços, não despesas." };
+  if (temItemExpense) {
+    const podeDespesas = await temPermissao(role, "criarDespesasComanda");
+    if (!podeDespesas) {
+      return { erro: "Você não tem permissão para registrar despesas na comanda." };
+    }
   }
 
   if (temItemIncome && !paymentMethod) {

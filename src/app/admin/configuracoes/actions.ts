@@ -149,9 +149,10 @@ export async function atualizarPermissoes(formData: FormData) {
   await verificarDono();
   if (await estaEmModoDemo()) return { sucesso: true, demo: true };
 
-  const chaves: ChavePermissao[] = [
+    const chaves: ChavePermissao[] = [
     "verFaturamentoCompleto", "fecharBarbearia", "verFidelidadeGestao", "verFechamentoMensal",
     "abrirFecharCaixa", "registrarSangriaSuprimento", "verRelatosEquipe", "verComissoesTodos", "verCupons",
+    "criarDespesasComanda",
   ];
 
   const novasPermissoes: Record<string, boolean> = {};

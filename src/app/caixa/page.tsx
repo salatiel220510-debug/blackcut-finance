@@ -19,12 +19,6 @@ export default async function CaixaPage({ searchParams }: { searchParams: Promis
   const role = (session.user as any).role;
   const userId = (session.user as any).id;
 
-    const [podeFechar, podeAbrirFecharCaixa, podeSangriaSuprimento] = await Promise.all([
-    temPermissao(role, "fecharBarbearia"),
-    temPermissao(role, "abrirFecharCaixa"),
-    temPermissao(role, "registrarSangriaSuprimento"),
-  ]);
-
   const params = await searchParams;
   const dataSelecionada = params.data || hojeBrasilString();
   const { inicio, fim } = limitesDoDiaEspecifico(dataSelecionada);
@@ -34,7 +28,10 @@ export default async function CaixaPage({ searchParams }: { searchParams: Promis
 
   const agora = new Date();
 
-  const [previaMes, entradasTotalAgg, saidasTotalAgg, comissoesAgg, settings, transacoesDoDia, fechamentoDoDia, sessaoAtual] = await Promise.all([
+  const [podeFechar, podeAbrirFecharCaixa, podeSangriaSuprimento, previaMes, entradasTotalAgg, saidasTotalAgg, comissoesAgg, settings, transacoesDoDia, fechamentoDoDia, sessaoAtual] = await Promise.all([
+    temPermissao(role, "fecharBarbearia"),
+    temPermissao(role, "abrirFecharCaixa"),
+    temPermissao(role, "registrarSangriaSuprimento"),
     calcularFechamento(agora.getUTCFullYear(), agora.getUTCMonth()),
     prisma.transaction.aggregate({ where: { type: "INCOME", deletedAt: null }, _sum: { amount: true } }),
     prisma.transaction.aggregate({ where: { type: "EXPENSE", deletedAt: null }, _sum: { amount: true } }),
@@ -57,9 +54,13 @@ export default async function CaixaPage({ searchParams }: { searchParams: Promis
   const entradasMes = previaMes.faturamentoBruto;
   const saidasMes = previaMes.totalDespesas;
 
-  const totalEntradasGeral = Number(entradasTotalAgg._sum.amount ?? 0);
-  const totalSaidasGeral = Number(saidasTotalAgg._sum.amount ?? 0);
   const totalComissoes = Number(comissoesAgg._sum.commissionAmount ?? 0);
+
+  const taxas = {
+    pix: settings ? Number(settings.taxaPix) : 0,
+    debito: settings ? Number(settings.taxaDebito) : 0,
+    credito: settings ? Number(settings.taxaCredito) : 0,
+  };
 
   const sessaoInfo = sessaoAtual
     ? {
@@ -105,7 +106,7 @@ export default async function CaixaPage({ searchParams }: { searchParams: Promis
       <main className="flex-1 max-w-4xl w-full mx-auto px-4 py-8">
         <h1 className="font-display text-2xl text-gold mb-6">Fluxo de Caixa</h1>
 
-              <StatusCaixa sessao={sessaoInfo} podeAbrirFechar={podeAbrirFecharCaixa} podeSangriaSuprimento={podeSangriaSuprimento} />
+        <StatusCaixa sessao={sessaoInfo} podeAbrirFechar={podeAbrirFecharCaixa} podeSangriaSuprimento={podeSangriaSuprimento} />
 
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
           <Card titulo="Entradas (mês)" valor={formatar(entradasMes)} />
@@ -135,7 +136,7 @@ export default async function CaixaPage({ searchParams }: { searchParams: Promis
           <p className="text-gold text-xs mb-3 text-center">🔒 Este dia já foi fechado — barbeiros não podem mais excluir lançamentos.</p>
         )}
 
-        <ListaTransacoesDia servicos={servicosAgrupados} gastos={gastosAgrupados} />
+        <ListaTransacoesDia servicos={servicosAgrupados} gastos={gastosAgrupados} taxas={taxas} />
       </main>
       <Footer role={role} />
     </div>

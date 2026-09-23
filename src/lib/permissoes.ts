@@ -15,6 +15,7 @@ const PERMISSOES_PADRAO: Record<ChavePermissao, boolean> = {
   verRelatosEquipe: false,
   verComissoesTodos: false,
   verCupons: false,
+  criarDespesasComanda: false,
 };
 
 export async function buscarPermissoesBarbeiro(): Promise<Record<ChavePermissao, boolean>> {

@@ -1,7 +1,7 @@
 "use client";
 
 type Previa = {
-  fundoTroco: number; totalDinheiro: number; totalDigital: number; totalSaidasDinheiro: number;
+  fundoTroco: number; totalDinheiro: number; totalDigital: number; totalTaxas: number; totalSaidasDinheiro: number;
   totalSangrias: number; totalSuprimentos: number; dinheiroEsperado: number; cartaoEsperado: number;
   clientesAtendidos: number; duracao: string;
 };
@@ -45,7 +45,9 @@ export default function ComprovanteFechamento({
         </div>
 
         <div className="border-t border-dashed border-gray-400 mt-2 pt-2 flex flex-col gap-1">
-          <Linha label="Pix/cartão esperado" valor={formatar(previa.cartaoEsperado)} />
+          <Linha label="Pix/cartão bruto" valor={formatar(previa.totalDigital)} />
+          <Linha label="Taxas descontadas" valor={formatar(previa.totalTaxas)} />
+          <Linha label="Pix/cartão esperado (líquido)" valor={formatar(previa.cartaoEsperado)} />
           <Linha label="Pix/cartão contado" valor={formatar(contagemCartao)} />
           <Linha label="Diferença" valor={formatar(diferencaCartao)} destaque={Math.abs(diferencaCartao) >= 0.01} />
         </div>

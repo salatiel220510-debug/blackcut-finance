@@ -54,6 +54,7 @@ const ABAS = [
 const CHAVES_PERMISSAO: ChavePermissao[] = [
   "verFaturamentoCompleto", "fecharBarbearia", "verFidelidadeGestao", "verFechamentoMensal",
   "abrirFecharCaixa", "registrarSangriaSuprimento", "verRelatosEquipe", "verComissoesTodos", "verCupons",
+  "criarDespesasComanda",
 ];
 
 export default function ConfiguracoesForm({
