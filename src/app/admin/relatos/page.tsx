@@ -11,9 +11,8 @@ export default async function RelatosPage() {
   const session = await auth();
   if (!session?.user) redirect("/login");
    const role = (session.user as any).role;
-  if (!(await temPermissao(role, "verRelatosEquipe"))) redirect("/");
-  if ((session.user as any).role !== "OWNER") redirect("/");
-
+  const userId = (session.user as any).id;
+  if (!(await temPermissao(role, userId, "verRelatosEquipe"))) redirect("/");
   const relatos = await prisma.report.findMany({
     orderBy: { createdAt: "desc" },
     include: { createdBy: { select: { name: true } } },

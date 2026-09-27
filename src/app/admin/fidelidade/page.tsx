@@ -8,9 +8,9 @@ import { temPermissao } from "@/lib/permissoes";
 export default async function FidelidadePage() {
   const session = await auth();
   if (!session?.user) redirect("/login");
-   const role = (session.user as any).role;
-  if (!(await temPermissao(role, "verFidelidadeGestao"))) redirect("/");
-
+    const role = (session.user as any).role;
+  const userId = (session.user as any).id;
+  if (!(await temPermissao(role, userId, "verFidelidadeGestao"))) redirect("/");
   const cartoes = await prisma.loyaltyCard.findMany({ orderBy: { updatedAt: "desc" } });
 
   return (

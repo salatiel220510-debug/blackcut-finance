@@ -10,7 +10,8 @@ export default async function NovaComandaPage() {
   if (!session?.user) redirect("/login");
 
   const role = (session.user as any).role;
-  const podeDespesas = await temPermissao(role, "criarDespesasComanda");
+  const userId = (session.user as any).id;
+  const podeDespesas = await temPermissao(role, userId, "criarDespesasComanda");
 
   const barbeiros = role === "OWNER"
     ? await prisma.user.findMany({
@@ -28,6 +29,8 @@ export default async function NovaComandaPage() {
   const categoriasDespesa = podeDespesas
     ? await prisma.expenseCategory.findMany({ where: { active: true }, orderBy: { name: "asc" } })
     : [];
+
+  const produtosRaw = await prisma.product.findMany({ where: { active: true, quantidade: { gt: 0 } }, orderBy: { name: "asc" } });
 
   const agora = new Date();
   const servicos = servicosRaw.map((s) => {
@@ -48,6 +51,14 @@ export default async function NovaComandaPage() {
     };
   });
 
+  const produtos = produtosRaw.map((p) => ({
+    id: p.id,
+    name: p.name,
+    price: Number(p.price),
+    quantidade: p.quantidade,
+    barcode: p.barcode,
+  }));
+
   return (
     <div className="min-h-screen flex flex-col">
       <main className="flex-1 max-w-md w-full mx-auto px-4 py-8">
@@ -57,6 +68,7 @@ export default async function NovaComandaPage() {
           podeDespesas={podeDespesas}
           barbeiros={barbeiros}
           servicos={servicos}
+          produtos={produtos}
           categoriasDespesa={categoriasDespesa.map((c) => ({ id: c.id, name: c.name }))}
         />
       </main>

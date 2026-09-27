@@ -1,13 +1,24 @@
 "use client";
 import { useState } from "react";
 import { registrarComanda } from "./actions";
+import { buscarProdutoPorCodigoBarras } from "@/app/admin/produtos/actions";
 import CartaoFidelidade from "@/components/CartaoFidelidade";
 import BarraOrcamentoCategoria from "@/components/BarraOrcamentoCategoria";
+import LeitorCodigoBarras from "@/components/LeitorCodigoBarras";
 
 type Barbeiro = { id: string; name: string };
 type Servico = { name: string; price: number | null; discountedPrice: number | null; discountPercentage: number | null };
+type Produto = { id: string; name: string; price: number; quantidade: number; barcode: string | null };
 type CategoriaDespesa = { id: string; name: string };
-type Item = { tipo: "INCOME" | "EXPENSE"; category: string; amount: number; expenseCategoryId?: string; descricao?: string };
+type Item = {
+  tipo: "INCOME" | "EXPENSE";
+  category: string;
+  amount: number;
+  expenseCategoryId?: string;
+  descricao?: string;
+  productId?: string;
+  quantidadeProduto?: number;
+};
 
 const METODOS_PAGAMENTO = [
   { valor: "DINHEIRO", label: "Dinheiro" },
@@ -23,18 +34,22 @@ export default function FormComanda({
   podeDespesas,
   barbeiros,
   servicos,
+  produtos,
   categoriasDespesa,
 }: {
   role: string;
   podeDespesas: boolean;
   barbeiros: Barbeiro[];
   servicos: Servico[];
+  produtos: Produto[];
   categoriasDespesa: CategoriaDespesa[];
 }) {
   const [itens, setItens] = useState<Item[]>([]);
-  const [tipoItemAtual, setTipoItemAtual] = useState<"INCOME" | "EXPENSE">("INCOME");
+  const [tipoItemAtual, setTipoItemAtual] = useState<"INCOME" | "EXPENSE" | "PRODUCT">("INCOME");
   const [categoriaServico, setCategoriaServico] = useState(servicos[0]?.name ?? "");
   const [categoriaDespesaId, setCategoriaDespesaId] = useState(categoriasDespesa[0]?.id ?? "");
+  const [produtoId, setProdutoId] = useState(produtos[0]?.id ?? "");
+  const [quantidadeProduto, setQuantidadeProduto] = useState("1");
   const [valorItem, setValorItem] = useState((servicos[0]?.discountedPrice ?? servicos[0]?.price)?.toString() ?? "");
   const [nomeDespesa, setNomeDespesa] = useState("");
   const [barberId, setBarberId] = useState("");
@@ -44,11 +59,14 @@ export default function FormComanda({
   const [mensagem, setMensagem] = useState("");
   const [sucesso, setSucesso] = useState(false);
   const [carregando, setCarregando] = useState(false);
+  const [mostrarLeitor, setMostrarLeitor] = useState(false);
 
   const total = itens.reduce((s, i) => s + i.amount, 0);
   const temIncomeNaLista = itens.some((i) => i.tipo === "INCOME");
-  const mostrarFormaPagamento = tipoItemAtual === "INCOME" || temIncomeNaLista;
+  const mostrarFormaPagamento = tipoItemAtual !== "EXPENSE" || temIncomeNaLista;
   const formatar = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+
+  const produtoSelecionado = produtos.find((p) => p.id === produtoId);
 
   function handleServicoChange(nome: string) {
     setCategoriaServico(nome);
@@ -57,7 +75,41 @@ export default function FormComanda({
     setValorItem(preco != null ? preco.toString() : "");
   }
 
+  async function handleLeituraCodigoBarras(codigo: string) {
+    setMostrarLeitor(false);
+    const encontradoLocal = produtos.find((p) => p.barcode === codigo);
+    if (encontradoLocal) {
+      setProdutoId(encontradoLocal.id);
+      setMensagem("");
+      return;
+    }
+    const produto = await buscarProdutoPorCodigoBarras(codigo);
+    if (produto) {
+      setMensagem(`Produto "${produto.name}" encontrado, mas está sem estoque disponível.`);
+    } else {
+      setMensagem("Nenhum produto cadastrado com esse código de barras.");
+    }
+  }
+
   function adicionarItem() {
+    if (tipoItemAtual === "PRODUCT") {
+      if (!produtoSelecionado) { setMensagem("Selecione um produto."); return; }
+      const qtd = parseInt(quantidadeProduto, 10);
+      if (isNaN(qtd) || qtd <= 0) { setMensagem("Informe uma quantidade válida."); return; }
+      if (qtd > produtoSelecionado.quantidade) { setMensagem(`Estoque insuficiente (disponível: ${produtoSelecionado.quantidade}).`); return; }
+
+      setItens([...itens, {
+        tipo: "INCOME",
+        category: produtoSelecionado.name,
+        amount: Number((produtoSelecionado.price * qtd).toFixed(2)),
+        productId: produtoSelecionado.id,
+        quantidadeProduto: qtd,
+      }]);
+      setQuantidadeProduto("1");
+      setMensagem("");
+      return;
+    }
+
     const valorNumerico = parseFloat(valorItem.replace(",", "."));
     if (isNaN(valorNumerico) || valorNumerico <= 0) {
       setMensagem("Informe um valor válido antes de adicionar.");
@@ -94,7 +146,11 @@ export default function FormComanda({
         paymentMethod: temIncomeNaLista ? paymentMethod : undefined,
         clienteNome: clienteNome || undefined,
         observacao: observacao || undefined,
-        itens: itens.map((i) => ({ tipo: i.tipo, category: i.category, amount: i.amount, expenseCategoryId: i.expenseCategoryId, descricao: i.descricao })),
+        itens: itens.map((i) => ({
+          tipo: i.tipo, category: i.category, amount: i.amount,
+          expenseCategoryId: i.expenseCategoryId, descricao: i.descricao,
+          productId: i.productId, quantidadeProduto: i.quantidadeProduto,
+        })),
       });
 
       if (resultado?.erro) {
@@ -116,40 +172,76 @@ export default function FormComanda({
 
   return (
     <div className="flex flex-col gap-4 border border-gold-dark/40 bg-black-soft rounded-xl p-6">
-            {podeDespesas && (
-        <div className="flex gap-2">
-          <button type="button" onClick={() => setTipoItemAtual("INCOME")}
-            className={`flex-1 rounded-lg px-3 py-1.5 text-sm font-semibold border ${tipoItemAtual === "INCOME" ? "bg-gold text-black-deep border-gold" : "bg-black-deep text-gray-300 border-gold-dark/40"}`}>
-            Serviço
+      <div className="flex gap-2 flex-wrap">
+        <button type="button" onClick={() => setTipoItemAtual("INCOME")}
+          className={`flex-1 rounded-lg px-3 py-1.5 text-sm font-semibold border ${tipoItemAtual === "INCOME" ? "bg-gold text-black-deep border-gold" : "bg-black-deep text-gray-300 border-gold-dark/40"}`}>
+          Serviço
+        </button>
+        {produtos.length > 0 && (
+          <button type="button" onClick={() => setTipoItemAtual("PRODUCT")}
+            className={`flex-1 rounded-lg px-3 py-1.5 text-sm font-semibold border ${tipoItemAtual === "PRODUCT" ? "bg-gold text-black-deep border-gold" : "bg-black-deep text-gray-300 border-gold-dark/40"}`}>
+            Produto
           </button>
+        )}
+        {podeDespesas && (
           <button type="button" onClick={() => setTipoItemAtual("EXPENSE")}
             className={`flex-1 rounded-lg px-3 py-1.5 text-sm font-semibold border ${tipoItemAtual === "EXPENSE" ? "bg-gold text-black-deep border-gold" : "bg-black-deep text-gray-300 border-gold-dark/40"}`}>
             Despesa
           </button>
-        </div>
-      )}
+        )}
+      </div>
 
       <div>
         <label className="text-sm text-gray-400 block mb-1">Adicionar item</label>
-        <div className="flex flex-col sm:flex-row gap-2">
-          {tipoItemAtual === "INCOME" ? (
+
+        {tipoItemAtual === "INCOME" && (
+          <div className="flex flex-col sm:flex-row gap-2">
             <select value={categoriaServico} onChange={(e) => handleServicoChange(e.target.value)} className={inputClass}>
               {servicos.map((s) => <option key={s.name} value={s.name}>{s.name}</option>)}
             </select>
-          ) : (
+            <input type="number" step="0.01" min="0.01" value={valorItem} onChange={(e) => setValorItem(e.target.value)} placeholder="Valor" className={inputClass} />
+            <button type="button" onClick={adicionarItem} className="bg-gold-dark text-black-deep font-semibold rounded-lg px-4 py-2 hover:bg-gold transition-colors whitespace-nowrap">
+              + Adicionar
+            </button>
+          </div>
+        )}
+
+        {tipoItemAtual === "PRODUCT" && (
+          <div className="flex flex-col gap-2">
+            <div className="flex gap-2">
+              <select value={produtoId} onChange={(e) => setProdutoId(e.target.value)} className={inputClass}>
+                {produtos.map((p) => (
+                  <option key={p.id} value={p.id}>{p.name} — {formatar(p.price)} ({p.quantidade} em estoque)</option>
+                ))}
+              </select>
+              <button type="button" onClick={() => setMostrarLeitor(true)} className="bg-gold-dark text-black-deep font-semibold rounded-lg px-4 hover:bg-gold transition-colors whitespace-nowrap">
+                📷
+              </button>
+            </div>
+            <div className="flex gap-2">
+              <input type="number" min="1" value={quantidadeProduto} onChange={(e) => setQuantidadeProduto(e.target.value)} placeholder="Quantidade" className={inputClass} />
+              <button type="button" onClick={adicionarItem} className="bg-gold-dark text-black-deep font-semibold rounded-lg px-4 py-2 hover:bg-gold transition-colors whitespace-nowrap">
+                + Adicionar
+              </button>
+            </div>
+          </div>
+        )}
+
+        {tipoItemAtual === "EXPENSE" && (
+          <div className="flex flex-col sm:flex-row gap-2">
             <select value={categoriaDespesaId} onChange={(e) => setCategoriaDespesaId(e.target.value)} className={inputClass}>
               {categoriasDespesa.length === 0 && <option value="">Nenhuma categoria cadastrada</option>}
               {categoriasDespesa.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
             </select>
-          )}
-          <input type="number" step="0.01" min="0.01" value={valorItem} onChange={(e) => setValorItem(e.target.value)} placeholder="Valor" className={inputClass} />
-          <button type="button" onClick={adicionarItem} className="bg-gold-dark text-black-deep font-semibold rounded-lg px-4 py-2 hover:bg-gold transition-colors whitespace-nowrap">
-            + Adicionar
-          </button>
-        </div>
+            <input type="number" step="0.01" min="0.01" value={valorItem} onChange={(e) => setValorItem(e.target.value)} placeholder="Valor" className={inputClass} />
+            <button type="button" onClick={adicionarItem} className="bg-gold-dark text-black-deep font-semibold rounded-lg px-4 py-2 hover:bg-gold transition-colors whitespace-nowrap">
+              + Adicionar
+            </button>
+          </div>
+        )}
       </div>
 
-      {tipoItemAtual === "INCOME" && role === "OWNER" && (
+      {tipoItemAtual !== "EXPENSE" && role === "OWNER" && (
         <div>
           <label className="text-sm text-gray-400 block mb-1">Barbeiro (para os serviços)</label>
           <select value={barberId} onChange={(e) => setBarberId(e.target.value)} className={inputClass}>
@@ -188,9 +280,9 @@ export default function FormComanda({
             <div key={i} className="flex items-center justify-between bg-black-deep border border-gold-dark/20 rounded-lg px-3 py-2">
               <span className="text-white text-sm">
                 <span className={`mr-1.5 text-[10px] px-1.5 py-0.5 rounded-full ${item.tipo === "INCOME" ? "bg-green-400/20 text-green-400" : "bg-red-400/20 text-red-400"}`}>
-                  {item.tipo === "INCOME" ? "Serviço" : "Despesa"}
+                  {item.productId ? "Produto" : item.tipo === "INCOME" ? "Serviço" : "Despesa"}
                 </span>
-                {item.category}{item.descricao ? ` (${item.descricao})` : ""} — {formatar(item.amount)}
+                {item.category}{item.quantidadeProduto ? ` (x${item.quantidadeProduto})` : ""}{item.descricao ? ` (${item.descricao})` : ""} — {formatar(item.amount)}
               </span>
               <button type="button" onClick={() => removerItem(i)} className="text-red-400 text-xs">Remover</button>
             </div>
@@ -221,6 +313,10 @@ export default function FormComanda({
         {carregando ? "Fechando..." : `Fechar Comanda${itens.length > 0 ? ` — ${formatar(total)}` : ""}`}
       </button>
       {mensagem && <p className={sucesso ? "text-green-400 text-sm" : "text-red-400 text-sm"}>{mensagem}</p>}
+
+      {mostrarLeitor && (
+        <LeitorCodigoBarras onLido={handleLeituraCodigoBarras} onFechar={() => setMostrarLeitor(false)} />
+      )}
     </div>
   );
 }

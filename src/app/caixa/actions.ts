@@ -57,10 +57,10 @@ export async function fecharDiaAction(data: string) {
   if (!session?.user) return { erro: "Não autenticado." };
 
   const role = (session.user as any).role;
-  const podeFechar = await temPermissao(role, "fecharBarbearia");
+  const userId = (session.user as any).id;
+  const podeFechar = await temPermissao(role, userId, "fecharBarbearia");
   if (!podeFechar) return { erro: "Você não tem permissão para fechar a barbearia." };
 
-  const userId = (session.user as any).id;
   const [ano, mes, dia] = data.split("-").map(Number);
   const dataChave = new Date(Date.UTC(ano, mes - 1, dia));
 

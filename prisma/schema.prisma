@@ -63,41 +63,6 @@ enum CashMovementType {
   SUPRIMENTO
 }
 
-model CashSession {
-  id          String            @id @default(cuid())
-  status      CashSessionStatus @default(ABERTO)
-
-  abertoPorId String
-  abertoPor   User              @relation("SessoesAbertas", fields: [abertoPorId], references: [id])
-  abertoEm    DateTime          @default(now())
-  fundoTroco  Decimal           @default(0) @db.Decimal(10, 2)
-
-  fechadoPorId     String?
-  fechadoPor       User?     @relation("SessoesFechadas", fields: [fechadoPorId], references: [id])
-  fechadoEm        DateTime?
-  contagemDinheiro Decimal?  @db.Decimal(10, 2)
-  contagemCartao   Decimal?  @db.Decimal(10, 2)
-
-  movimentos CashMovement[]
-
-  @@index([status])
-}
-
-model CashMovement {
-  id          String           @id @default(cuid())
-  sessionId   String
-  session     CashSession      @relation(fields: [sessionId], references: [id])
-  type        CashMovementType
-  amount      Decimal          @db.Decimal(10, 2)
-  motivo      String?
-  createdById String
-  createdBy   User             @relation("MovimentosCaixa", fields: [createdById], references: [id])
-  createdAt   DateTime         @default(now())
-
-  @@index([sessionId])
-}
-
-
 model User {
   id              String        @id @default(cuid())
   name            String
@@ -107,6 +72,7 @@ model User {
   status          AccountStatus @default(PENDING)
   createdAt       DateTime      @default(now())
   needsAccessCode Boolean       @default(false)
+  permissions     Json?
 
   servicosRealizados    Transaction[]          @relation("Barbeiro")
   transacoesCriadas     Transaction[]          @relation("CriadoPor")
@@ -117,9 +83,9 @@ model User {
   diasFechados          DailyClosure[]
   notificacoesEnviadas  Notification[]
   relatos               Report[]
-    sessoesAbertas  CashSession[]  @relation("SessoesAbertas")
-  sessoesFechadas CashSession[]  @relation("SessoesFechadas")
-  movimentosCaixa CashMovement[] @relation("MovimentosCaixa")
+  sessoesAbertas        CashSession[]          @relation("SessoesAbertas")
+  sessoesFechadas       CashSession[]          @relation("SessoesFechadas")
+  movimentosCaixa       CashMovement[]         @relation("MovimentosCaixa")
 
   @@index([status])
   @@index([role])
@@ -141,6 +107,9 @@ model Transaction {
 
   expenseCategoryId String?
   expenseCategory   ExpenseCategory? @relation(fields: [expenseCategoryId], references: [id])
+
+  productId String?
+  product   Product? @relation(fields: [productId], references: [id])
 
   comandaId     String?
   paymentMethod PaymentMethod?
@@ -164,6 +133,7 @@ model Transaction {
   @@index([expenseCategoryId])
   @@index([comandaId])
   @@index([commissionSettled])
+  @@index([productId])
 }
 
 model Settings {
@@ -184,7 +154,7 @@ model Settings {
   taxaDebito  Decimal @default(0) @db.Decimal(5, 2)
   taxaCredito Decimal @default(0) @db.Decimal(5, 2)
 
-barberPermissions Json?
+  barberPermissions Json?
 
   updatedAt              DateTime  @updatedAt
 }
@@ -198,6 +168,23 @@ model ServiceType {
   active             Boolean   @default(true)
   createdAt          DateTime  @default(now())
   updatedAt          DateTime  @updatedAt
+}
+
+model Product {
+  id         String   @id @default(cuid())
+  name       String
+  barcode    String?  @unique
+  price      Decimal  @db.Decimal(10, 2)
+  quantidade Int      @default(0)
+  vendidos   Int      @default(0)
+  active     Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  transacoes Transaction[]
+
+  @@index([barcode])
+  @@index([active])
 }
 
 model ExpenseCategory {
@@ -304,6 +291,40 @@ model Report {
   resolvedAt  DateTime?
 
   @@index([status])
+}
+
+model CashSession {
+  id          String            @id @default(cuid())
+  status      CashSessionStatus @default(ABERTO)
+
+  abertoPorId String
+  abertoPor   User              @relation("SessoesAbertas", fields: [abertoPorId], references: [id])
+  abertoEm    DateTime          @default(now())
+  fundoTroco  Decimal           @default(0) @db.Decimal(10, 2)
+
+  fechadoPorId     String?
+  fechadoPor       User?     @relation("SessoesFechadas", fields: [fechadoPorId], references: [id])
+  fechadoEm        DateTime?
+  contagemDinheiro Decimal?  @db.Decimal(10, 2)
+  contagemCartao   Decimal?  @db.Decimal(10, 2)
+
+  movimentos CashMovement[]
+
+  @@index([status])
+}
+
+model CashMovement {
+  id          String           @id @default(cuid())
+  sessionId   String
+  session     CashSession      @relation(fields: [sessionId], references: [id])
+  type        CashMovementType
+  amount      Decimal          @db.Decimal(10, 2)
+  motivo      String?
+  createdById String
+  createdBy   User             @relation("MovimentosCaixa", fields: [createdById], references: [id])
+  createdAt   DateTime         @default(now())
+
+  @@index([sessionId])
 }
 
 model PushSubscription {

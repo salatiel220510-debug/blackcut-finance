@@ -1,3 +1,4 @@
+import { PaymentMethod } from "@/generated/prisma/enums";
 import { z } from "zod";
 
 function emailNormalizado(mensagem = "E-mail inválido.") {
@@ -119,6 +120,8 @@ export const comandaSchema = z.object({
         amount: z.number().positive("O valor do item precisa ser maior que zero."),
         expenseCategoryId: z.string().trim().optional(),
         descricao: z.string().trim().max(200).optional(),
+        productId: z.string().trim().optional(),
+        quantidadeProduto: z.number().int().positive().optional(),
       })
     )
     .min(1, "Adicione pelo menos um item à comanda."),
@@ -159,4 +162,11 @@ export const fecharCaixaSchema = z.object({
 export const movimentoCaixaSchema = z.object({
   amount: numeroPtBR().refine((v) => v > 0, "Informe um valor maior que zero."),
   motivo: z.string().trim().max(200).optional(),
+});
+
+export const produtoSchema = z.object({
+  name: z.string().trim().min(1, "Informe o nome do produto."),
+  barcode: z.string().trim().max(50).optional(),
+  price: numeroPtBR().refine((v) => v > 0, "Informe um preço válido."),
+  quantidade: z.coerce.number().int().min(0, "Quantidade inválida."),
 });

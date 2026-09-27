@@ -1,9 +1,14 @@
+import { auth } from "@/auth";
 import { APP_VERSION } from "@/lib/version";
-import { buscarPermissoesBarbeiro } from "@/lib/permissoes";
+import { buscarPermissoesUsuario } from "@/lib/permissoes";
 import FooterNav from "./FooterNav";
 
-export default async function Footer({ role }: { role?: string }) {
-  const permissoes = role === "BARBER" ? await buscarPermissoesBarbeiro() : null;
+export default async function Footer({ role: _roleIgnoradoLegado }: { role?: string }) {
+  const session = await auth();
+  const role = (session?.user as any)?.role as string | undefined;
+  const userId = (session?.user as any)?.id as string | undefined;
+
+  const permissoes = role === "BARBER" && userId ? await buscarPermissoesUsuario(userId) : null;
 
   return (
     <footer className="border-t border-gold-dark/30 bg-black-soft mt-auto">

@@ -26,9 +26,10 @@ export async function registrarComanda(dadosBrutos: unknown) {
 
   const temItemIncome = itens.some((i) => i.tipo === "INCOME");
   const temItemExpense = itens.some((i) => i.tipo === "EXPENSE");
+  const itensProduto = itens.filter((i) => i.productId);
 
   if (temItemExpense) {
-    const podeDespesas = await temPermissao(role, "criarDespesasComanda");
+    const podeDespesas = await temPermissao(role, userId, "criarDespesasComanda");
     if (!podeDespesas) {
       return { erro: "Você não tem permissão para registrar despesas na comanda." };
     }
@@ -48,6 +49,15 @@ export async function registrarComanda(dadosBrutos: unknown) {
     }
   }
 
+  for (const item of itensProduto) {
+    const produto = await prisma.product.findUnique({ where: { id: item.productId! } });
+    if (!produto) return { erro: "Produto não encontrado." };
+    const qtd = item.quantidadeProduto ?? 1;
+    if (produto.quantidade < qtd) {
+      return { erro: `Estoque insuficiente de "${produto.name}" (disponível: ${produto.quantidade}).` };
+    }
+  }
+
   if (await estaEmModoDemo()) {
     return { sucesso: true, demo: true };
   }
@@ -57,24 +67,42 @@ export async function registrarComanda(dadosBrutos: unknown) {
 
   const comandaId = crypto.randomUUID();
 
-  await prisma.transaction.createMany({
-    data: itens.map((item) =>
-      item.tipo === "INCOME"
-        ? {
-            type: "INCOME" as const,
+  await prisma.$transaction(async (tx) => {
+    for (const item of itens) {
+      if (item.tipo === "INCOME") {
+        const ehProduto = !!item.productId;
+
+        if (ehProduto) {
+          const qtd = item.quantidadeProduto ?? 1;
+          const atualizado = await tx.product.updateMany({
+            where: { id: item.productId!, quantidade: { gte: qtd } },
+            data: { quantidade: { decrement: qtd }, vendidos: { increment: qtd } },
+          });
+          if (atualizado.count === 0) {
+            throw new Error(`Estoque insuficiente para concluir a venda do produto.`);
+          }
+        }
+
+        await tx.transaction.create({
+          data: {
+            type: "INCOME",
             category: item.category,
             amount: item.amount,
             barberId,
-            commissionPercentage: percentual,
-            commissionAmount: Number((item.amount * (percentual / 100)).toFixed(2)),
+            commissionPercentage: ehProduto ? null : percentual,
+            commissionAmount: ehProduto ? null : Number((item.amount * (percentual / 100)).toFixed(2)),
             comandaId,
             paymentMethod,
             clienteNome: clienteNome || null,
             observacao: observacao || null,
+            productId: item.productId || null,
             createdById: userId,
-          }
-        : {
-            type: "EXPENSE" as const,
+          },
+        });
+      } else {
+        await tx.transaction.create({
+          data: {
+            type: "EXPENSE",
             category: item.category,
             description: item.descricao || null,
             amount: item.amount,
@@ -83,8 +111,10 @@ export async function registrarComanda(dadosBrutos: unknown) {
             paymentMethod: paymentMethod || null,
             observacao: observacao || null,
             createdById: userId,
-          }
-    ),
+          },
+        });
+      }
+    }
   });
 
   const total = itens.reduce((s, i) => s + i.amount, 0);
@@ -113,5 +143,6 @@ export async function registrarComanda(dadosBrutos: unknown) {
 
   revalidatePath("/caixa");
   revalidatePath("/admin/fechamento");
+  revalidatePath("/admin/produtos");
   return { sucesso: true };
 }

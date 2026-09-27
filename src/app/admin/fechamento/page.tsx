@@ -19,9 +19,9 @@ import { temPermissao } from "@/lib/permissoes";
 export default async function FechamentoPage() {
   const session = await auth();
   if (!session?.user) redirect("/login");
-   const role = (session.user as any).role;
-  if (!(await temPermissao(role, "verFechamentoMensal"))) redirect("/");
-
+     const role = (session.user as any).role;
+  const userId = (session.user as any).id;
+  if (!(await temPermissao(role, userId, "verFechamentoMensal"))) redirect("/");
   const agora = new Date();
 
   const [previa, despesasPorCategoria, evolucao, orcamentos, acumulados, settings, historico, entradasTotalAgg, saidasTotalAgg, comissoesAgg] = await Promise.all([

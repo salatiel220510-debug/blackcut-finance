@@ -39,6 +39,9 @@ function IconeRelato() {
 function IconeCupom() {
   return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" width={22} height={22}><path d="M6 2h12v18l-3-2-3 2-3-2-3 2z" /><line x1="9" y1="7" x2="15" y2="7" /><line x1="9" y1="11" x2="15" y2="11" /></svg>;
 }
+function IconeProduto() {
+  return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" width={22} height={22}><path d="M21 8l-9-5-9 5 9 5 9-5z" /><path d="M3 8v8l9 5 9-5V8" /><path d="M12 13v8" /></svg>;
+}
 function IconeSair() {
   return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" width={22} height={22}><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4" /><path d="M16 17l5-5-5-5" /><path d="M21 12H9" /></svg>;
 }
@@ -58,6 +61,7 @@ const LINKS_DONO: ItemMenu[] = [
   { href: "/admin/fidelidade", label: "Fidelidade", icone: <IconeFidelidade /> },
   { href: "/admin/relatos", label: "Relatos", icone: <IconeRelato /> },
   { href: "/admin/cupons", label: "Cupons", icone: <IconeCupom /> },
+  { href: "/admin/produtos", label: "Produtos", icone: <IconeProduto /> },
   { href: "/admin/aprovacoes", label: "Aprovações", icone: <IconeAprovacoes /> },
 ];
 
@@ -67,6 +71,7 @@ const LINKS_EXTRAS_BARBEIRO: { chave: string; item: ItemMenu }[] = [
   { chave: "verRelatosEquipe", item: { href: "/admin/relatos", label: "Relatos", icone: <IconeRelato /> } },
   { chave: "verComissoesTodos", item: { href: "/admin/comissoes", label: "Comissões", icone: <IconeComissao /> } },
   { chave: "verCupons", item: { href: "/admin/cupons", label: "Cupons", icone: <IconeCupom /> } },
+  { chave: "gerenciarProdutos", item: { href: "/admin/produtos", label: "Produtos", icone: <IconeProduto /> } },
 ];
 
 export default function FooterNav({ role, permissoes }: { role: string; permissoes: Record<string, boolean> | null }) {

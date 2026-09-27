@@ -29,9 +29,9 @@ export default async function CaixaPage({ searchParams }: { searchParams: Promis
   const agora = new Date();
 
   const [podeFechar, podeAbrirFecharCaixa, podeSangriaSuprimento, previaMes, entradasTotalAgg, saidasTotalAgg, comissoesAgg, settings, transacoesDoDia, fechamentoDoDia, sessaoAtual] = await Promise.all([
-    temPermissao(role, "fecharBarbearia"),
-    temPermissao(role, "abrirFecharCaixa"),
-    temPermissao(role, "registrarSangriaSuprimento"),
+    temPermissao(role, userId, "fecharBarbearia"),
+    temPermissao(role, userId, "abrirFecharCaixa"),
+    temPermissao(role, userId, "registrarSangriaSuprimento"),
     calcularFechamento(agora.getUTCFullYear(), agora.getUTCMonth()),
     prisma.transaction.aggregate({ where: { type: "INCOME", deletedAt: null }, _sum: { amount: true } }),
     prisma.transaction.aggregate({ where: { type: "EXPENSE", deletedAt: null }, _sum: { amount: true } }),

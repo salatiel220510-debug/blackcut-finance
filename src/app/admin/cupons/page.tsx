@@ -11,9 +11,9 @@ import ListaCupons from "./ListaCupons";
 export default async function CuponsPage() {
   const session = await auth();
   if (!session?.user) redirect("/login");
-  const role = (session.user as any).role;
-  if (!(await temPermissao(role, "verCupons"))) redirect("/");
-
+    const role = (session.user as any).role;
+  const userId = (session.user as any).id;
+  if (!(await temPermissao(role, userId, "verCupons"))) redirect("/");
   const agora = new Date();
   const { inicio, fimExclusivo } = limitesDoMesEspecifico(agora.getUTCFullYear(), agora.getUTCMonth());
 

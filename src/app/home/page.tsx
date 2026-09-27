@@ -11,6 +11,7 @@ import { serieUltimosDias } from "@/lib/dashboardData";
 import { evolucaoUltimosMeses } from "@/lib/dashboardFinanceiro";
 import { calcularFechamento } from "@/lib/fechamentoMensal";
 import { temPermissao } from "@/lib/permissoes";
+import { limitesDoMesEspecifico } from "@/lib/datasBrasil";
 
 export default async function HomePage() {
   const session = await auth();
@@ -21,17 +22,16 @@ export default async function HomePage() {
   const nome = session.user?.name ?? "";
 
   const formatar = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-  const podeVerFaturamento = await temPermissao(role, "verFaturamentoCompleto");
+  const podeVerFaturamento = await temPermissao(role, userId, "verFaturamentoCompleto");
 
   let secaoBarbeiro = null;
   if (role === "BARBER") {
     const agora = new Date();
-    const inicioMes = new Date(Date.UTC(agora.getUTCFullYear(), agora.getUTCMonth(), 1, 3, 0, 0));
-    const fimMesExclusivo = new Date(Date.UTC(agora.getUTCFullYear(), agora.getUTCMonth() + 1, 1, 3, 0, 0));
+    const { inicio, fimExclusivo } = limitesDoMesEspecifico(agora.getUTCFullYear(), agora.getUTCMonth());
 
     const [agg, serie] = await Promise.all([
       prisma.transaction.aggregate({
-        where: { barberId: userId, type: "INCOME", deletedAt: null, date: { gte: inicioMes, lt: fimMesExclusivo } },
+        where: { barberId: userId, type: "INCOME", deletedAt: null, date: { gte: inicio, lt: fimExclusivo } },
         _sum: { commissionAmount: true, amount: true },
         _count: true,
       }),
