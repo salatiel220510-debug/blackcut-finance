@@ -16,6 +16,7 @@ enum AccountStatus {
   PENDING
   APPROVED
   REJECTED
+  REMOVED
 }
 
 enum TransactionType {
@@ -73,6 +74,7 @@ model User {
   createdAt       DateTime      @default(now())
   needsAccessCode Boolean       @default(false)
   permissions     Json?
+  sessionVersion  Int           @default(0)
 
   servicosRealizados    Transaction[]          @relation("Barbeiro")
   transacoesCriadas     Transaction[]          @relation("CriadoPor")
@@ -86,9 +88,23 @@ model User {
   sessoesAbertas        CashSession[]          @relation("SessoesAbertas")
   sessoesFechadas       CashSession[]          @relation("SessoesFechadas")
   movimentosCaixa       CashMovement[]         @relation("MovimentosCaixa")
+  passwordResetTokens   PasswordResetToken[]
 
   @@index([status])
   @@index([role])
+}
+
+model PasswordResetToken {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id])
+  token     String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([token])
+  @@index([userId])
 }
 
 model Transaction {

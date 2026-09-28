@@ -43,6 +43,7 @@ export async function verificarLogin(email: string, password: string) {
   await registrarTentativa(emailNormalizado, true);
   await registrarTentativa(`ip:${ip}`, true);
 
+  if (user.status === "REMOVED") return { status: "removido" as const };
   if (user.status !== "APPROVED") return { status: "pendente" as const };
   if (user.needsAccessCode) return { status: "precisa_codigo" as const };
 

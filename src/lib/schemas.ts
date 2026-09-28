@@ -170,3 +170,22 @@ export const produtoSchema = z.object({
   price: numeroPtBR().refine((v) => v > 0, "Informe um preço válido."),
   quantidade: z.coerce.number().int().min(0, "Quantidade inválida."),
 });
+
+export const esqueciSenhaSchema = z.object({
+  email: emailNormalizado(),
+});
+
+export const redefinirSenhaTokenSchema = z
+  .object({
+    token: z.string().trim().min(1, "Token inválido."),
+    novaSenha: z.string().min(6, "A nova senha precisa ter pelo menos 6 caracteres."),
+    confirmarSenha: z.string().min(1, "Confirme a nova senha."),
+  })
+  .refine((data) => data.novaSenha === data.confirmarSenha, {
+    message: "A confirmação não corresponde à nova senha.",
+    path: ["confirmarSenha"],
+  });
+
+export const senhaBarbeiroSchema = z.object({
+  novaSenha: z.string().min(6, "A senha precisa ter pelo menos 6 caracteres."),
+});

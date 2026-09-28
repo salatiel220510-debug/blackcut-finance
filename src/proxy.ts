@@ -35,7 +35,7 @@ export default auth((req) => {
   const cspHeader = construirCSP(nonce);
 
   const isLoggedIn = !!req.auth;
-  const rotasPublicas = ["/login", "/cadastro"];
+  const rotasPublicas = ["/login", "/cadastro","/redefinir-senha"];
   const isRotaPublica = rotasPublicas.includes(req.nextUrl.pathname);
 
   if (!isLoggedIn && !isRotaPublica) {

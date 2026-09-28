@@ -56,7 +56,13 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           await prisma.user.update({ where: { id: user.id }, data: { needsAccessCode: false } });
         }
 
-        return { id: user.id, name: user.name, email: user.email, role: user.role };
+        return {
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          role: user.role,
+          sessionVersion: user.sessionVersion,
+        };
       },
     }),
   ],
@@ -65,7 +71,18 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       if (user) {
         token.role = (user as any).role;
         token.id = (user as any).id;
+        token.sessionVersion = (user as any).sessionVersion ?? 0;
+        return token;
       }
+
+      if (token.id) {
+        const dbUser = await prisma.user.findUnique({ where: { id: token.id as string } });
+        if (!dbUser || dbUser.status !== "APPROVED" || dbUser.sessionVersion !== token.sessionVersion) {
+          return null;
+        }
+        token.role = dbUser.role;
+      }
+
       return token;
     },
     async session({ session, token }) {

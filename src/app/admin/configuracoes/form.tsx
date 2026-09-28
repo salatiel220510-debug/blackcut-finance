@@ -11,13 +11,11 @@ import {
   atualizarEnvelopes,
   atualizarMetas,
   atualizarTaxas,
-  atualizarPermissoes,
   criarCategoriaDespesa,
   atualizarBudgetCategoria,
   desativarCategoriaDespesa,
 } from "./actions";
 import DemoLoginForm from "@/components/DemoLoginForm";
-import { PERMISSOES_LABEL, ChavePermissao } from "@/lib/permissoesTipos";
 
 type Servico = {
   id: string;
@@ -36,8 +34,6 @@ type Categoria = {
   active: boolean;
 };
 
-type Barbeiro = { id: string; name: string; permissoes: Record<ChavePermissao, boolean> };
-
 const TIPOS_LABEL: Record<Categoria["type"], string> = {
   FIXED: "Fixa",
   VARIABLE: "Variável",
@@ -50,14 +46,7 @@ const ABAS = [
   { id: "monetario", label: "Controle Monetário" },
   { id: "envelope", label: "Envelope e Metas" },
   { id: "categorias", label: "Categorias" },
-  { id: "permissoes", label: "Permissões" },
 ] as const;
-
-const CHAVES_PERMISSAO: ChavePermissao[] = [
-  "verFaturamentoCompleto", "fecharBarbearia", "verFidelidadeGestao", "verFechamentoMensal",
-  "abrirFecharCaixa", "registrarSangriaSuprimento", "verRelatosEquipe", "verComissoesTodos", "verCupons",
-  "criarDespesasComanda", "gerenciarProdutos",
-];
 
 export default function ConfiguracoesForm({
   comissaoAtual,
@@ -65,7 +54,6 @@ export default function ConfiguracoesForm({
   envelopes,
   metas,
   taxas,
-  barbeiros,
   servicos,
   categorias,
 }: {
@@ -74,7 +62,6 @@ export default function ConfiguracoesForm({
   envelopes: { operacional: number; proLabore: number; reserva: number };
   metas: { proLabore: number | null; reserva: number | null };
   taxas: { pix: number; debito: number; credito: number };
-  barbeiros: Barbeiro[];
   servicos: Servico[];
   categorias: Categoria[];
 }) {
@@ -278,69 +265,8 @@ export default function ConfiguracoesForm({
         </div>
       )}
 
-      {aba === "permissoes" && <PainelPermissoes barbeiros={barbeiros} />}
-
       {mensagem && <p className="text-gold text-sm">{mensagem}</p>}
     </div>
-  );
-}
-
-function PainelPermissoes({ barbeiros }: { barbeiros: Barbeiro[] }) {
-  const [selecionadoId, setSelecionadoId] = useState(barbeiros[0]?.id ?? "");
-  const [mensagemLocal, setMensagemLocal] = useState("");
-
-  const barbeiroSelecionado = barbeiros.find((b) => b.id === selecionadoId);
-
-  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    if (!selecionadoId) return;
-    const resultado = await atualizarPermissoes(selecionadoId, new FormData(e.currentTarget));
-    setMensagemLocal(resultado.sucesso ? "Permissões atualizadas!" : "Não foi possível atualizar as permissões.");
-  }
-
-  if (barbeiros.length === 0) {
-    return (
-      <section className="border border-gold-dark/40 bg-black-soft rounded-xl p-5">
-        <p className="text-gray-400 text-sm">Nenhum barbeiro aprovado ainda.</p>
-      </section>
-    );
-  }
-
-  return (
-    <section className="border border-gold-dark/40 bg-black-soft rounded-xl p-5">
-      <h2 className="font-display text-lg text-gold mb-2">Permissões Individuais</h2>
-      <p className="text-gray-400 text-sm mb-4">Selecione um barbeiro para definir, só para ele, o que pode ver e fazer.</p>
-
-      <div className="flex flex-wrap gap-2 mb-4">
-        {barbeiros.map((b) => (
-          <button
-            key={b.id}
-            type="button"
-            onClick={() => { setSelecionadoId(b.id); setMensagemLocal(""); }}
-            className={`text-sm font-semibold rounded-full px-4 py-2 border transition-colors ${
-              selecionadoId === b.id ? "bg-gold text-black-deep border-gold" : "bg-black-deep text-gray-300 border-gold-dark/40 hover:border-gold"
-            }`}
-          >
-            {b.name}
-          </button>
-        ))}
-      </div>
-
-      {barbeiroSelecionado && (
-        <form key={barbeiroSelecionado.id} onSubmit={handleSubmit} className="flex flex-col gap-3">
-          {CHAVES_PERMISSAO.map((chave) => (
-            <label key={chave} className="flex items-center gap-3 border border-gold-dark/20 rounded-lg p-3 cursor-pointer hover:border-gold-dark/50 transition-colors">
-              <input type="checkbox" name={chave} defaultChecked={barbeiroSelecionado.permissoes[chave]} className="w-5 h-5 accent-current text-gold" />
-              <span className="text-gray-200 text-sm">{PERMISSOES_LABEL[chave]}</span>
-            </label>
-          ))}
-          <button type="submit" className="bg-gold text-black-deep font-semibold rounded-lg px-4 py-2 hover:bg-gold-light transition-colors mt-2">
-            Salvar Permissões de {barbeiroSelecionado.name}
-          </button>
-          {mensagemLocal && <p className="text-gold text-sm">{mensagemLocal}</p>}
-        </form>
-      )}
-    </section>
   );
 }
 

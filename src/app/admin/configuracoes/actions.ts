@@ -16,7 +16,6 @@ import {
   taxasSchema,
 } from "@/lib/schemas";
 import { estaEmModoDemo } from "@/lib/demoGuard";
-import { ChavePermissao } from "@/lib/permissoesTipos";
 
 async function verificarDono() {
   const session = await auth();
@@ -141,26 +140,6 @@ export async function atualizarTaxas(formData: FormData) {
 
   const { taxaPix, taxaDebito, taxaCredito } = validacao.data;
   await prisma.settings.update({ where: { id: 1 }, data: { taxaPix, taxaDebito, taxaCredito } });
-  revalidatePath("/admin/configuracoes");
-  return { sucesso: true };
-}
-
-export async function atualizarPermissoes(barberId: string, formData: FormData) {
-  await verificarDono();
-  if (await estaEmModoDemo()) return { sucesso: true, demo: true };
-
-  const chaves: ChavePermissao[] = [
-    "verFaturamentoCompleto", "fecharBarbearia", "verFidelidadeGestao", "verFechamentoMensal",
-    "abrirFecharCaixa", "registrarSangriaSuprimento", "verRelatosEquipe", "verComissoesTodos", "verCupons",
-    "criarDespesasComanda", "gerenciarProdutos",
-  ];
-
-  const novasPermissoes: Record<string, boolean> = {};
-  for (const chave of chaves) {
-    novasPermissoes[chave] = formData.get(chave) === "on";
-  }
-
-  await prisma.user.update({ where: { id: barberId }, data: { permissions: novasPermissoes } });
   revalidatePath("/admin/configuracoes");
   return { sucesso: true };
 }

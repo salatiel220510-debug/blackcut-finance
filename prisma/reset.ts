@@ -9,11 +9,14 @@ function perguntar(pergunta: string): Promise<string> {
 async function main() {
   console.log("\n⚠️  ATENÇÃO: este script vai apagar PERMANENTEMENTE:");
   console.log("  - Todas as contas de barbeiros (a conta de dono é preservada)");
-  console.log("  - Todos os lançamentos do fluxo de caixa");
+  console.log("  - Todos os lançamentos, comandas e vendas");
+  console.log("  - Todas as sessões de caixa, sangrias e suprimentos");
+  console.log("  - Todos os produtos e o estoque");
   console.log("  - Todos os fechamentos mensais e diários");
   console.log("  - Todos os cartões fidelidade, relatos e notificações");
-  console.log("  - Código de acesso, saldo bancário e taxas de pagamento");
-  console.log("  - A comissão será resetada para 40%, envelopes para 60/30/10\n");
+  console.log("  - Código de acesso, saldo bancário, taxas de pagamento e metas");
+  console.log("  - A comissão volta para 40% e os envelopes para 60/30/10");
+  console.log("  Serviços e categorias de despesa NÃO são apagados.\n");
 
   const resposta = await perguntar('Digite exatamente "CONFIRMAR" para prosseguir: ');
   if (resposta !== "CONFIRMAR") {
@@ -27,8 +30,17 @@ async function main() {
   await prisma.commissionSettlement.deleteMany({});
   console.log("✓ Liquidações de comissão apagadas.");
 
+  await prisma.cashMovement.deleteMany({});
+  console.log("✓ Sangrias e suprimentos apagados.");
+
+  await prisma.cashSession.deleteMany({});
+  console.log("✓ Sessões de caixa apagadas.");
+
   await prisma.transaction.deleteMany({});
-  console.log("✓ Lançamentos do caixa apagados.");
+  console.log("✓ Lançamentos apagados.");
+
+  await prisma.product.deleteMany({});
+  console.log("✓ Produtos apagados.");
 
   await prisma.monthlyClosure.deleteMany({});
   console.log("✓ Fechamentos mensais apagados.");
@@ -53,6 +65,9 @@ async function main() {
 
   const subsApagadas = await prisma.pushSubscription.deleteMany({ where: { userId: { in: idsNaoDonos } } });
   console.log(`✓ ${subsApagadas.count} inscrição(ões) de notificação apagada(s).`);
+
+    const tokensApagados = await prisma.passwordResetToken.deleteMany({ where: { userId: { in: idsNaoDonos } } });
+  console.log(`✓ ${tokensApagados.count} token(s) de redefinição de senha apagado(s).`);
 
   const usuariosApagados = await prisma.user.deleteMany({ where: { role: { not: "OWNER" } } });
   console.log(`✓ ${usuariosApagados.count} conta(s) apagada(s) (dono preservado).`);
