@@ -20,7 +20,7 @@ export default function EsqueciSenhaForm() {
     }
 
     if ("erro" in resultado) {
-      setMensagem(resultado.erro);
+      setMensagem(resultado.erro ?? "Não foi possível processar a solicitação.");
     } else {
       setEnviado(true);
       setMensagem(resultado?.mensagem ?? "Se esse e-mail estiver cadastrado, enviamos um link de redefinição.");
