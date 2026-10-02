@@ -43,7 +43,7 @@ export default function FormRedefinirSenha({ token }: { token: string }) {
         <label className="text-sm text-gray-300 block mb-1.5">Confirme a nova senha</label>
         <input name="confirmarSenha" type="password" required className="w-full bg-white/5 border border-gold/30 rounded-xl px-4 py-3 text-white focus:border-gold focus:outline-none transition-colors" />
       </div>
-      <button type="submit" disabled={carregando} className="w-full bg-gradient-to-red from-gold-dark via-gold to-gold-light text-black-deep font-bold py-3.5 rounded-xl shadow-lg shadow-gold/20 hover:shadow-gold/40 transition-shadow disabled:opacity-50">
+      <button type="submit" disabled={carregando} className="w-full bg-gradient-to-r from-gold-dark via-gold to-gold-light text-black-deep font-bold py-3.5 rounded-xl shadow-lg shadow-gold/20 hover:shadow-gold/40 transition-shadow disabled:opacity-50">
         {carregando ? "Salvando..." : "Redefinir Senha"}
       </button>
       {mensagem && <p className="text-red-400 text-sm text-center">{mensagem}</p>}

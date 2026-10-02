@@ -4,9 +4,10 @@ import { prisma } from "@/lib/prisma";
 import { auth } from "@/auth";
 import { revalidatePath } from "next/cache";
 import { after } from "next/server";
-import { enviarPushParaDonos, enviarPushParaTodosAprovados } from "@/lib/push";
-import { diaBrasilDeData, limitesDoDiaEspecifico } from "@/lib/datasBrasil";
+import { enviarPushParaDonos } from "@/lib/push";
+import { diaBrasilDeData } from "@/lib/datasBrasil";
 import { temPermissao } from "@/lib/permissoes";
+import { fecharDiaInterno } from "@/lib/fecharDia";
 
 export async function excluirTransacao(id: string) {
   const session = await auth();
@@ -61,30 +62,10 @@ export async function fecharDiaAction(data: string) {
   const podeFechar = await temPermissao(role, userId, "fecharBarbearia");
   if (!podeFechar) return { erro: "Você não tem permissão para fechar a barbearia." };
 
-  const [ano, mes, dia] = data.split("-").map(Number);
-  const dataChave = new Date(Date.UTC(ano, mes - 1, dia));
-
-  const jaFechado = await prisma.dailyClosure.findUnique({ where: { data: dataChave } });
-  if (jaFechado) {
+  const resultado = await fecharDiaInterno(data, userId);
+  if (resultado.jaEstavaFechado) {
     return { erro: "Esse dia já foi fechado anteriormente." };
   }
-
-  await prisma.dailyClosure.create({ data: { data: dataChave, closedById: userId } });
-
-  const { inicio, fim } = limitesDoDiaEspecifico(data);
-  const [entradasAgg, saidasAgg] = await Promise.all([
-    prisma.transaction.aggregate({ where: { type: "INCOME", deletedAt: null, date: { gte: inicio, lte: fim } }, _sum: { amount: true } }),
-    prisma.transaction.aggregate({ where: { type: "EXPENSE", deletedAt: null, date: { gte: inicio, lte: fim } }, _sum: { amount: true } }),
-  ]);
-
-  const formatar = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-  const totalEntradas = Number(entradasAgg._sum.amount ?? 0);
-  const totalSaidas = Number(saidasAgg._sum.amount ?? 0);
-
-  await enviarPushParaTodosAprovados({
-    title: "Barbearia fechada por hoje",
-    body: `Entradas: ${formatar(totalEntradas)} | Saídas: ${formatar(totalSaidas)}`,
-  }).catch((e) => console.error("[fechar-dia] push:", e));
 
   revalidatePath("/caixa");
   return { sucesso: true };

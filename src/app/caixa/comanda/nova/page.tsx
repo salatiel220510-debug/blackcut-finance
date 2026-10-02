@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import Footer from "@/components/Footer";
 import FormComanda from "./form";
 import { temPermissao } from "@/lib/permissoes";
+import { sessaoAberta } from "@/lib/caixaSessao";
 
 export default async function NovaComandaPage() {
   const session = await auth();
@@ -12,6 +13,8 @@ export default async function NovaComandaPage() {
   const role = (session.user as any).role;
   const userId = (session.user as any).id;
   const podeDespesas = await temPermissao(role, userId, "criarDespesasComanda");
+  const sessaoAtual = await sessaoAberta();
+  const caixaAberto = !!sessaoAtual;
 
   const barbeiros = role === "OWNER"
     ? await prisma.user.findMany({
@@ -70,6 +73,7 @@ export default async function NovaComandaPage() {
           servicos={servicos}
           produtos={produtos}
           categoriasDespesa={categoriasDespesa.map((c) => ({ id: c.id, name: c.name }))}
+          caixaAberto={caixaAberto}
         />
       </main>
       <Footer role={role} />

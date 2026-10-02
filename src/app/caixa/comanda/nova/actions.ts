@@ -9,6 +9,7 @@ import { verificarAlertaOrcamento } from "@/lib/alertasOrcamento";
 import { comandaSchema } from "@/lib/schemas";
 import { estaEmModoDemo } from "@/lib/demoGuard";
 import { temPermissao } from "@/lib/permissoes";
+import { sessaoAberta } from "@/lib/caixaSessao";
 
 export async function registrarComanda(dadosBrutos: unknown) {
   const session = await auth();
@@ -16,6 +17,11 @@ export async function registrarComanda(dadosBrutos: unknown) {
 
   const role = (session.user as any).role;
   const userId = (session.user as any).id;
+
+    const sessaoAtual = await sessaoAberta();
+  if (!sessaoAtual) {
+    return { erro: "O caixa precisa estar aberto para registrar um atendimento. Peça para abrir o caixa primeiro." };
+  }
 
   const validacao = comandaSchema.safeParse(dadosBrutos);
   if (!validacao.success) {

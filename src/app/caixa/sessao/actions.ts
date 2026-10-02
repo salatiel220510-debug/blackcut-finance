@@ -9,6 +9,8 @@ import { estaEmModoDemo } from "@/lib/demoGuard";
 import { temPermissao } from "@/lib/permissoes";
 import { enviarPushParaDonos } from "@/lib/push";
 import { abrirCaixaSchema, fecharCaixaSchema, movimentoCaixaSchema } from "@/lib/schemas";
+import { fecharDiaInterno } from "@/lib/fecharDia";
+import { hojeBrasilString } from "@/lib/datasBrasil";
 
 export async function abrirCaixa(formData: FormData) {
   const session = await auth();
@@ -30,6 +32,7 @@ export async function abrirCaixa(formData: FormData) {
   await prisma.cashSession.create({ data: { abertoPorId: userId, fundoTroco: validacao.data.fundoTroco } });
 
   revalidatePath("/caixa");
+  revalidatePath("/caixa/comanda/nova");
   return { sucesso: true };
 }
 
@@ -59,7 +62,10 @@ export async function fecharCaixa(formData: FormData) {
     },
   });
 
+  await fecharDiaInterno(hojeBrasilString(), userId).catch((e) => console.error("[fechar-caixa] erro ao fechar o dia:", e));
+
   revalidatePath("/caixa");
+  revalidatePath("/caixa/comanda/nova");
   return { sucesso: true, sessionId: sessao.id };
 }
 

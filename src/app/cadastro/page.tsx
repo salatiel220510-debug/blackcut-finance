@@ -32,7 +32,7 @@ export default function CadastroPage() {
       <FundoAbstrato />
       <div className="flex-1 flex items-center justify-center px-4 py-12">
         <div className="w-full max-w-sm">
-          <div className="backdrop-blur-xl bg-white/4% border border-gold/20 rounded-3xl shadow-2xl shadow-black/60 px-7 py-9">
+          <div className="backdrop-blur-xl bg-white/[0.04] border border-gold/20 rounded-3xl shadow-2xl shadow-black/60 px-7 py-9">
             <div className="flex flex-col items-center mb-2">
               <TesouraAnimada size={48} />
               <h1 className="font-display text-2xl text-gold tracking-widest mt-3">BLACKCUT</h1>
@@ -57,7 +57,7 @@ export default function CadastroPage() {
               </div>
 
               <button type="submit" disabled={carregando}
-                className="w-full bg-gradient-to-red from-gold-dark via-gold to-gold-light text-black-deep font-bold py-3.5 rounded-xl shadow-lg shadow-gold/20 hover:shadow-gold/40 transition-shadow disabled:opacity-50 mt-2">
+                className="w-full bg-gradient-to-r from-gold-dark via-gold to-gold-light text-black-deep font-bold py-3.5 rounded-xl shadow-lg shadow-gold/20 hover:shadow-gold/40 transition-shadow disabled:opacity-50 mt-2">
                 {carregando ? "Enviando..." : "Cadastrar"}
               </button>
               {mensagem && (

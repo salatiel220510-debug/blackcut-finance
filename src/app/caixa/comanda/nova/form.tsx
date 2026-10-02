@@ -32,6 +32,7 @@ const inputClass = "bg-black-deep border border-gold-dark/40 rounded-lg px-3 py-
 export default function FormComanda({
   role,
   podeDespesas,
+  caixaAberto,
   barbeiros,
   servicos,
   produtos,
@@ -39,10 +40,11 @@ export default function FormComanda({
 }: {
   role: string;
   podeDespesas: boolean;
+  caixaAberto: boolean;
   barbeiros: Barbeiro[];
   servicos: Servico[];
   produtos: Produto[];
-  categoriasDespesa: CategoriaDespesa[];
+  categoriasDespesa: CategoriaDespesa[]
 }) {
   const [itens, setItens] = useState<Item[]>([]);
   const [tipoItemAtual, setTipoItemAtual] = useState<"INCOME" | "EXPENSE" | "PRODUCT">("INCOME");
@@ -172,6 +174,11 @@ export default function FormComanda({
 
   return (
     <div className="flex flex-col gap-4 border border-gold-dark/40 bg-black-soft rounded-xl p-6">
+            {!caixaAberto && (
+        <div className="border border-red-400/50 bg-red-400/10 rounded-lg p-3 text-red-300 text-sm text-center">
+          🔒 O caixa está fechado. Peça para abrir o caixa antes de registrar um atendimento.
+        </div>
+      )}
       <div className="flex gap-2 flex-wrap">
         <button type="button" onClick={() => setTipoItemAtual("INCOME")}
           className={`flex-1 rounded-lg px-3 py-1.5 text-sm font-semibold border ${tipoItemAtual === "INCOME" ? "bg-gold text-black-deep border-gold" : "bg-black-deep text-gray-300 border-gold-dark/40"}`}>
@@ -308,7 +315,7 @@ export default function FormComanda({
         </div>
       )}
 
-      <button type="button" onClick={handleFechar} disabled={carregando || itens.length === 0}
+            <button type="button" onClick={handleFechar} disabled={carregando || itens.length === 0 || !caixaAberto}
         className="bg-gold text-black-deep font-semibold rounded-lg py-2.5 hover:bg-gold-light transition-colors disabled:opacity-50 mt-2">
         {carregando ? "Fechando..." : `Fechar Comanda${itens.length > 0 ? ` — ${formatar(total)}` : ""}`}
       </button>
