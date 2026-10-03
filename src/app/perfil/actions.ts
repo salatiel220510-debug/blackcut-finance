@@ -30,6 +30,7 @@ export async function alterarSenha(formData: FormData) {
     where: { id: userId },
     data: {
       passwordHash: novoHash,
+      sessionVersion: { increment: 1 },
       ...(user.role === "BARBER" ? { needsAccessCode: true } : {}),
     },
   });

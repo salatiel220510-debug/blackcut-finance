@@ -24,6 +24,9 @@ function IconeConfig() {
 function IconeAprovacoes() {
   return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" width={22} height={22}><circle cx="12" cy="12" r="10" /><path d="M8 12l3 3 5-6" /></svg>;
 }
+function IconeEquipe() {
+  return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" width={22} height={22}><path d="M17 21v-2a4 4 0 00-4-4H7a4 4 0 00-4 4v2" /><circle cx="10" cy="7" r="4" /><path d="M23 21v-2a4 4 0 00-3-3.87" /><path d="M16 3.13a4 4 0 010 7.75" /></svg>;
+}
 function IconeComissao() {
   return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" width={22} height={22}><circle cx="12" cy="12" r="9" /><path d="M12 7v10M9 10a3 3 0 013-3h1a2 2 0 010 4h-2a2 2 0 000 4h1a3 3 0 003-3" /></svg>;
 }
@@ -42,9 +45,6 @@ function IconeCupom() {
 function IconeProduto() {
   return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" width={22} height={22}><path d="M21 8l-9-5-9 5 9 5 9-5z" /><path d="M3 8v8l9 5 9-5V8" /><path d="M12 13v8" /></svg>;
 }
-function IconeBarbeiros() {
-  return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" width={22} height={22}><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 00-3-3.87" /><path d="M16 3.13a4 4 0 010 7.75" /></svg>;
-}
 function IconeSair() {
   return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" width={22} height={22}><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4" /><path d="M16 17l5-5-5-5" /><path d="M21 12H9" /></svg>;
 }
@@ -58,7 +58,6 @@ const LINKS_COMUNS: ItemMenu[] = [
 ];
 
 const LINKS_DONO: ItemMenu[] = [
-  { href: "/admin/barbeiros", label: "Barbeiros", icone: <IconeBarbeiros /> },
   { href: "/admin/comissoes", label: "Comissões", icone: <IconeComissao /> },
   { href: "/admin/configuracoes", label: "Config.", icone: <IconeConfig /> },
   { href: "/admin/fechamento", label: "Fechamento", icone: <IconeFechamento /> },
@@ -66,6 +65,7 @@ const LINKS_DONO: ItemMenu[] = [
   { href: "/admin/relatos", label: "Relatos", icone: <IconeRelato /> },
   { href: "/admin/cupons", label: "Cupons", icone: <IconeCupom /> },
   { href: "/admin/produtos", label: "Produtos", icone: <IconeProduto /> },
+  { href: "/admin/barbeiros", label: "Equipe", icone: <IconeEquipe /> },
   { href: "/admin/aprovacoes", label: "Aprovações", icone: <IconeAprovacoes /> },
 ];
 
