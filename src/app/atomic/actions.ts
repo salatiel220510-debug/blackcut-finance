@@ -28,6 +28,25 @@ async function sessaoAtomic() {
   return { role, userId };
 }
 
+// Traduz o erro técnico em uma mensagem útil. O diagnóstico técnico só é mostrado
+// em desenvolvimento (npm run dev) ou ao DONO; barbeiros nunca recebem detalhes.
+function mensagemDeErro(e: unknown, mostrarDetalhe: boolean): string {
+  const dev = mostrarDetalhe;
+  const generica = "A ATOMIC está indisponível no momento. Tente novamente em instantes.";
+
+  if (e instanceof ErroModelo) {
+    const detalhe = dev ? ` (diagnóstico: HTTP ${e.status} — ${e.message.slice(0, 300)})` : "";
+    if (e.status === 429) return "A ATOMIC atingiu o limite de uso do plano gratuito. Aguarde alguns instantes e tente de novo." + detalhe;
+    if (e.message.includes("GEMINI_API_KEY")) return "A chave da IA não está configurada no servidor." + detalhe;
+    if (e.status === 401 || e.status === 403) return "O Google recusou o acesso desta chave ou deste modelo. Verifique a configuração." + detalhe;
+    if (e.status === 400) return "O Google recusou a solicitação. Verifique a chave e o modelo configurados." + detalhe;
+    if (e.status === 404) return "O modelo de IA configurado não está disponível para esta chave." + detalhe;
+    if (e.status === 504) return "A resposta demorou demais. Tente uma pergunta mais específica." + detalhe;
+    return generica + detalhe;
+  }
+  return generica + (dev && e instanceof Error ? ` (diagnóstico: ${e.message.slice(0, 300)})` : "");
+}
+
 export async function enviarMensagem(dados: unknown): Promise<{ chatId?: string; resposta?: string; erro?: string }> {
   const sessao = await sessaoAtomic();
   if (!sessao) return { erro: "Acesso negado." };
@@ -71,10 +90,8 @@ export async function enviarMensagem(dados: unknown): Promise<{ chatId?: string;
     return { chatId: chat.id, resposta };
   } catch (e) {
     console.error("[atomic] erro ao responder:", e);
-    if (e instanceof ErroModelo && e.status === 429) {
-      return { chatId: chat.id, erro: "A ATOMIC atingiu o limite de uso do plano gratuito. Aguarde alguns instantes e tente de novo." };
-    }
-    return { chatId: chat.id, erro: "A ATOMIC está indisponível no momento. Tente novamente em instantes." };
+    const verDetalhe = process.env.NODE_ENV !== "production" || sessao.role === "OWNER";
+    return { chatId: chat.id, erro: mensagemDeErro(e, verDetalhe) };
   }
 }
 
