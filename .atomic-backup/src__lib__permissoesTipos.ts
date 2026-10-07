@@ -9,8 +9,7 @@ export type ChavePermissao =
   | "verComissoesTodos"
   | "verCupons"
   | "criarDespesasComanda"
-  | "gerenciarProdutos"
-  | "usarAtomic";
+  | "gerenciarProdutos";
 
 export const PERMISSOES_LABEL: Record<ChavePermissao, string> = {
   verFaturamentoCompleto: "Ver faturamento e indicadores da barbearia (Início)",
@@ -24,7 +23,6 @@ export const PERMISSOES_LABEL: Record<ChavePermissao, string> = {
   verCupons: "Ver cupons e horas trabalhadas da barbearia",
   criarDespesasComanda: "Registrar despesas na Comanda (além de serviços)",
   gerenciarProdutos: "Gerenciar produtos da barbearia",
-  usarAtomic: "Usar a assistente ATOMIC (consultas com IA)",
 };
 
 export const PERMISSOES_PADRAO: Record<ChavePermissao, boolean> = {
@@ -38,6 +36,5 @@ export const PERMISSOES_PADRAO: Record<ChavePermissao, boolean> = {
   verComissoesTodos: false,
   verCupons: false,
   criarDespesasComanda: false,
-  gerenciarProdutos: false,
-  usarAtomic: false
+  gerenciarProdutos: false
 };

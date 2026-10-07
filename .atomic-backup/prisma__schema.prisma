@@ -89,7 +89,6 @@ model User {
   sessoesFechadas       CashSession[]          @relation("SessoesFechadas")
   movimentosCaixa       CashMovement[]         @relation("MovimentosCaixa")
   passwordResetTokens   PasswordResetToken[]
-  atomicChats           AtomicChat[]
 
   @@index([status])
   @@index([role])
@@ -363,45 +362,4 @@ model LoginAttempt {
   createdAt  DateTime @default(now())
 
   @@index([identifier, createdAt])
-}
-
-enum AtomicRole {
-  USER
-  MODEL
-}
-
-model AtomicChat {
-  id        String          @id @default(cuid())
-  userId    String
-  user      User            @relation(fields: [userId], references: [id])
-  title     String          @default("Nova conversa")
-  createdAt DateTime        @default(now())
-  updatedAt DateTime        @updatedAt
-  messages  AtomicMessage[]
-
-  @@index([userId, updatedAt])
-}
-
-model AtomicMessage {
-  id        String     @id @default(cuid())
-  chatId    String
-  chat      AtomicChat @relation(fields: [chatId], references: [id], onDelete: Cascade)
-  role      AtomicRole
-  content   String
-  createdAt DateTime   @default(now())
-
-  @@index([chatId, createdAt])
-}
-
-model AtomicToolLog {
-  id        String   @id @default(cuid())
-  chatId    String
-  userId    String
-  tool      String
-  args      Json
-  ok        Boolean
-  createdAt DateTime @default(now())
-
-  @@index([chatId])
-  @@index([userId, createdAt])
 }

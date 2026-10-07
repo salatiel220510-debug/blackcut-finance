@@ -7,7 +7,6 @@ import Link from "next/link";
 import GraficoLinhaCaixa from "@/components/GraficoLinhaCaixa";
 import GraficoComparacaoGastosServicos from "@/components/GraficoComparacaoGastosServicos";
 import IconeSino from "@/components/IconeSino";
-import IconeAtomo from "@/components/IconeAtomo";
 import { serieUltimosDias } from "@/lib/dashboardData";
 import { evolucaoUltimosMeses } from "@/lib/dashboardFinanceiro";
 import { calcularFechamento } from "@/lib/fechamentoMensal";
@@ -24,7 +23,6 @@ export default async function HomePage() {
 
   const formatar = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
   const podeVerFaturamento = await temPermissao(role, userId, "verFaturamentoCompleto");
-  const podeAtomic = await temPermissao(role, userId, "usarAtomic");
 
   let secaoBarbeiro = null;
   if (role === "BARBER") {
@@ -161,16 +159,9 @@ export default async function HomePage() {
       <main className="flex-1 max-w-4xl w-full mx-auto px-4 py-8">
         <div className="flex items-center justify-between mb-1">
           <h1 className="font-display text-2xl text-gold">Bem-vindo, {nome}</h1>
-          <div className="flex items-center gap-3">
-            {podeAtomic && (
-              <Link href="/atomic" title="ATOMIC" className="text-gold-dark hover:text-gold">
-                <IconeAtomo size={26} />
-              </Link>
-            )}
-            <Link href="/notificacoes" title="Avisos" className="text-gold-dark hover:text-gold">
-              <IconeSino size={26} />
-            </Link>
-          </div>
+          <Link href="/notificacoes" title="Avisos" className="text-gold-dark hover:text-gold">
+            <IconeSino size={26} />
+          </Link>
         </div>
         <p className="text-gray-400 mb-8">{role === "OWNER" ? "Visão geral do negócio — mês atual." : "Resumo do seu desempenho na BlackCut."}</p>
 

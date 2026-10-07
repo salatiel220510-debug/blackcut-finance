@@ -6,7 +6,7 @@ import { PERMISSOES_LABEL, ChavePermissao } from "@/lib/permissoesTipos";
 const CHAVES_PERMISSAO: ChavePermissao[] = [
   "verFaturamentoCompleto", "fecharBarbearia", "verFidelidadeGestao", "verFechamentoMensal",
   "abrirFecharCaixa", "registrarSangriaSuprimento", "verRelatosEquipe", "verComissoesTodos", "verCupons",
-  "criarDespesasComanda", "gerenciarProdutos", "usarAtomic",
+  "criarDespesasComanda", "gerenciarProdutos",
 ];
 
 type Barbeiro = { id: string; name: string; email: string; permissoes: Record<ChavePermissao, boolean> };

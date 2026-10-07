@@ -55,7 +55,7 @@ export async function atualizarPermissoesBarbeiro(barberId: string, formData: Fo
   const chaves: ChavePermissao[] = [
     "verFaturamentoCompleto", "fecharBarbearia", "verFidelidadeGestao", "verFechamentoMensal",
     "abrirFecharCaixa", "registrarSangriaSuprimento", "verRelatosEquipe", "verComissoesTodos", "verCupons",
-    "criarDespesasComanda", "gerenciarProdutos", "usarAtomic",
+    "criarDespesasComanda", "gerenciarProdutos",
   ];
 
   const novasPermissoes: Record<string, boolean> = {};
