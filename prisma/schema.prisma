@@ -405,3 +405,36 @@ model AtomicToolLog {
   @@index([chatId])
   @@index([userId, createdAt])
 }
+
+enum AtomicProposalType {
+  SERVICO
+  PRODUTO
+  DESPESA
+  FIDELIDADE
+}
+
+enum AtomicProposalStatus {
+  PENDENTE
+  EXECUTANDO
+  CONFIRMADA
+  CANCELADA
+}
+
+model AtomicProposal {
+  id        String               @id @default(cuid())
+  chatId    String
+  messageId String?
+  userId    String
+  type      AtomicProposalType
+  data      Json
+  summary   String
+  status    AtomicProposalStatus @default(PENDENTE)
+  confirmed Json?
+  result    String?
+  createdAt DateTime             @default(now())
+  decidedAt DateTime?
+
+  @@index([chatId])
+  @@index([messageId])
+  @@index([userId, createdAt])
+}

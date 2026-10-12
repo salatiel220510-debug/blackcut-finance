@@ -3,7 +3,10 @@ import { redirect } from "next/navigation";
 import Footer from "@/components/Footer";
 import { temPermissao } from "@/lib/permissoes";
 import ChatAtomic from "./chat";
-import { listarConversas } from "./actions";
+
+async function listarConversas() {
+  return [];
+}
 
 // Tempo máximo (em segundos) da resposta. Confira o limite do seu plano na Vercel.
 export const maxDuration = 60;

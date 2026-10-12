@@ -5,6 +5,7 @@ import { comissaoPendenteBarbeiro } from "@/lib/comissoesPendentes";
 import { sessaoAberta } from "@/lib/caixaSessao";
 import { limitesDoDiaEspecifico, diaBrasilDeData } from "@/lib/datasBrasil";
 import type { DeclaracaoFerramenta } from "./modelo";
+import type { PropostaRascunho } from "./tipos";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Regras de segurança desta camada (nunca relaxar sem revisão):
@@ -13,10 +14,12 @@ import type { DeclaracaoFerramenta } from "./modelo";
 //  3. Cada ferramenta reconfere a permissão do usuário por conta própria.
 //  4. Cada ferramenta devolve uma LISTA BRANCA de campos (sem nomes de clientes,
 //     observações ou textos livres). Além disso, limpar() é a rede de segurança final.
-//  5. Fase 1: somente leitura. Nenhuma ferramenta escreve no banco.
+//  5. NENHUMA ferramenta grava no banco. As ferramentas 'propor_*' apenas exibem um
+//     formulário; a gravação só ocorre quando a PESSOA clica em Confirmar (propostas.ts).
 // ─────────────────────────────────────────────────────────────────────────────
 
-export type Contexto = { userId: string; role: string };
+// 'propostas' é o coletor dos formulários pedidos pela IA durante UMA mensagem.
+export type Contexto = { userId: string; role: string; propostas: PropostaRascunho[] };
 
 type Ferramenta = {
   declaracao: DeclaracaoFerramenta;
@@ -67,6 +70,20 @@ function janela(p: Periodo) {
 
 const veTudo = (ctx: Contexto) => temPermissao(ctx.role, ctx.userId, "verFaturamentoCompleto");
 const SEM_PERMISSAO = { erro: "O usuário não tem permissão para consultar estes dados." };
+
+const MAX_FORMULARIOS_POR_MENSAGEM = 3;
+const INSTRUCAO_FORMULARIO =
+  "O formulário já está sendo exibido ao usuário para revisão. Avise que ele deve conferir os campos e clicar em Confirmar. NÃO afirme que algo foi cadastrado.";
+
+function exibirFormulario(ctx: Contexto, proposta: PropostaRascunho, instrucao = INSTRUCAO_FORMULARIO) {
+  if (ctx.propostas.length >= MAX_FORMULARIOS_POR_MENSAGEM) {
+    return { erro: "Limite de formulários por mensagem atingido. Peça um de cada vez." };
+  }
+  ctx.propostas.push(proposta);
+  return { status: "formulario_exibido_ao_usuario", instrucao };
+}
+
+const normalizar = (t: string) => t.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
 
 const LISTA: Ferramenta[] = [
   definir({
@@ -301,6 +318,142 @@ const LISTA: Ferramenta[] = [
         fundo_troco: arred(num(s.fundoTroco)),
       };
     },
+  }),
+  // ───────── Fase 2: formulários para revisão humana (a IA NUNCA grava) ─────────
+  definir({
+    nome: "listar_categorias_despesa",
+    descricao: "Lista os nomes das categorias de despesa ativas. Use antes de propor uma despesa.",
+    schema: z.object({}),
+    executar: async (_a, ctx) => {
+      if (!(await temPermissao(ctx.role, ctx.userId, "criarDespesasComanda"))) return SEM_PERMISSAO;
+      const categorias = await prisma.expenseCategory.findMany({
+        where: { active: true },
+        orderBy: { name: "asc" },
+        select: { name: true },
+      });
+      return { categorias: categorias.map((c) => c.name) };
+    },
+  }),
+
+  definir({
+    nome: "propor_cadastro_servico",
+    descricao:
+      "Prepara um formulário para cadastrar um novo serviço. NÃO grava nada: o usuário revisa e confirma. Somente o dono pode usar.",
+    parametros: {
+      type: "object",
+      properties: {
+        nome: { type: "string", description: "Nome do serviço." },
+        preco: { type: "number", description: "Preço em reais (opcional)." },
+      },
+      required: ["nome"],
+    },
+    schema: z.object({
+      nome: z.string().trim().min(1).max(60),
+      preco: z.coerce.number().min(0).max(100000).optional(),
+    }),
+    executar: async (a, ctx) => {
+      if (ctx.role !== "OWNER") return { erro: "Somente o dono pode cadastrar serviços." };
+      const existe = await prisma.serviceType.findUnique({ where: { name: a.nome } });
+      if (existe) return { erro: "Já existe um serviço com esse nome." };
+      return exibirFormulario(ctx, {
+        tipo: "SERVICO",
+        dados: { nome: a.nome, preco: a.preco !== undefined ? String(a.preco) : "" },
+        resumo: `Cadastrar serviço “${a.nome}”`,
+      });
+    },
+  }),
+
+  definir({
+    nome: "propor_cadastro_produto",
+    descricao:
+      "Prepara um formulário para cadastrar um novo produto com preço e estoque. NÃO grava nada: o usuário revisa e confirma.",
+    parametros: {
+      type: "object",
+      properties: {
+        nome: { type: "string", description: "Nome do produto." },
+        preco: { type: "number", description: "Preço de venda em reais." },
+        quantidade: { type: "integer", description: "Quantidade inicial em estoque (padrão 0)." },
+        codigo_barras: { type: "string", description: "Código de barras (opcional)." },
+      },
+      required: ["nome", "preco"],
+    },
+    schema: z.object({
+      nome: z.string().trim().min(1).max(80),
+      preco: z.coerce.number().positive().max(100000),
+      quantidade: z.coerce.number().int().min(0).max(100000).default(0),
+      codigo_barras: z.string().trim().max(50).optional(),
+    }),
+    executar: async (a, ctx) => {
+      if (!(await temPermissao(ctx.role, ctx.userId, "gerenciarProdutos"))) {
+        return { erro: "O usuário não tem permissão para cadastrar produtos." };
+      }
+      if (a.codigo_barras) {
+        const existe = await prisma.product.findUnique({ where: { barcode: a.codigo_barras } });
+        if (existe) return { erro: "Já existe um produto com esse código de barras." };
+      }
+      return exibirFormulario(ctx, {
+        tipo: "PRODUTO",
+        dados: {
+          nome: a.nome,
+          preco: String(a.preco),
+          quantidade: String(a.quantidade),
+          codigo_barras: a.codigo_barras ?? "",
+        },
+        resumo: `Cadastrar produto “${a.nome}”`,
+      });
+    },
+  }),
+
+  definir({
+    nome: "propor_despesa",
+    descricao:
+      "Prepara um formulário para registrar uma despesa. NÃO grava nada: o usuário revisa e confirma. Exige caixa aberto.",
+    parametros: {
+      type: "object",
+      properties: {
+        valor: { type: "number", description: "Valor da despesa em reais." },
+        categoria: { type: "string", description: "Nome da categoria (veja listar_categorias_despesa)." },
+        descricao: { type: "string", description: "Descrição curta (opcional)." },
+      },
+      required: ["valor"],
+    },
+    schema: z.object({
+      valor: z.coerce.number().positive().max(1000000),
+      categoria: z.string().trim().max(60).optional(),
+      descricao: z.string().trim().max(200).optional(),
+    }),
+    executar: async (a, ctx) => {
+      if (!(await temPermissao(ctx.role, ctx.userId, "criarDespesasComanda"))) {
+        return { erro: "O usuário não tem permissão para registrar despesas." };
+      }
+      if (!(await sessaoAberta())) return { erro: "O caixa está fechado. É preciso abri-lo antes de registrar uma despesa." };
+
+      const categorias = await prisma.expenseCategory.findMany({ where: { active: true }, select: { id: true, name: true } });
+      const alvo = a.categoria ? normalizar(a.categoria) : "";
+      const achada = alvo
+        ? categorias.find((c) => normalizar(c.name) === alvo) ??
+          categorias.find((c) => normalizar(c.name).includes(alvo) || alvo.includes(normalizar(c.name)))
+        : undefined;
+
+      return exibirFormulario(ctx, {
+        tipo: "DESPESA",
+        dados: { valor: String(a.valor), categoria_id: achada?.id ?? "", descricao: a.descricao ?? "" },
+        resumo: `Registrar despesa de R$ ${a.valor.toFixed(2).replace(".", ",")}`,
+      });
+    },
+  }),
+
+  definir({
+    nome: "abrir_cartao_fidelidade",
+    descricao:
+      "Abre o painel do cartão fidelidade, onde o PRÓPRIO USUÁRIO digita o nome do cliente e marca o cartão. Nunca peça nem receba o nome do cliente no chat.",
+    schema: z.object({}),
+    executar: async (_a, ctx) =>
+      exibirFormulario(
+        ctx,
+        { tipo: "FIDELIDADE", dados: {}, resumo: "Cartão fidelidade" },
+        "O painel do cartão fidelidade já está sendo exibido. Peça ao usuário para digitar o nome do cliente no painel, e não no chat."
+      ),
   }),
 ];
 

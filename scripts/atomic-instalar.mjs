@@ -1,4 +1,4 @@
-// Instalador da ATOMIC — Fase 1.
+// Instalador da ATOMIC — Fases 1 e 2.
 // Aplica as pequenas alterações nos arquivos que JÁ EXISTEM no projeto.
 //
 // Como usar (no terminal do VS Code, na raiz do projeto):
@@ -110,6 +110,40 @@ model AtomicToolLog {
 }
 `;
 
+const BLOCO_PRISMA_FASE2 = `enum AtomicProposalType {
+  SERVICO
+  PRODUTO
+  DESPESA
+  FIDELIDADE
+}
+
+enum AtomicProposalStatus {
+  PENDENTE
+  EXECUTANDO
+  CONFIRMADA
+  CANCELADA
+}
+
+model AtomicProposal {
+  id        String               @id @default(cuid())
+  chatId    String
+  messageId String?
+  userId    String
+  type      AtomicProposalType
+  data      Json
+  summary   String
+  status    AtomicProposalStatus @default(PENDENTE)
+  confirmed Json?
+  result    String?
+  createdAt DateTime             @default(now())
+  decidedAt DateTime?
+
+  @@index([chatId])
+  @@index([messageId])
+  @@index([userId, createdAt])
+}
+`;
+
 editar("prisma/schema.prisma", [
   {
     nome: "relação atomicChats no modelo User",
@@ -122,6 +156,12 @@ editar("prisma/schema.prisma", [
     jaFeito: /model\s+AtomicChat\s*\{/,
     alvo: /[\s\S]+/,
     novo: (m) => `${m.trimEnd()}\n\n${BLOCO_PRISMA}`,
+  },
+  {
+    nome: "modelo AtomicProposal (Fase 2: formulários de confirmação)",
+    jaFeito: /model\s+AtomicProposal\s*\{/,
+    alvo: /[\s\S]+/,
+    novo: (m) => `${m.trimEnd()}\n\n${BLOCO_PRISMA_FASE2}`,
   },
 ]);
 
@@ -218,6 +258,9 @@ const NOVOS = [
   "src/app/atomic/actions.ts",
   "src/app/atomic/page.tsx",
   "src/app/atomic/chat.tsx",
+  "src/app/atomic/proposta-card.tsx",
+  "src/lib/atomic/tipos.ts",
+  "src/lib/atomic/propostas.ts",
   "scripts/atomic-smoke.ts",
 ];
 for (const rel of NOVOS) {
@@ -237,7 +280,7 @@ if (problemas.length > 0) {
   console.log("\nPróximos passos:");
   console.log('  1) Abra o arquivo .env e cole a sua chave em GEMINI_API_KEY="..."');
   console.log("  2) npx tsx scripts/atomic-smoke.ts");
-  console.log("  3) npx prisma migrate dev --name add_atomic");
+  console.log("  3) npx prisma migrate dev --name add_atomic_fase2");
   console.log("  4) npx prisma generate");
   console.log("  5) npx tsc --noEmit");
   console.log("  6) npm run dev");

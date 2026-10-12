@@ -6,6 +6,14 @@ import { prisma } from "@/lib/prisma";
 import { temPermissao } from "@/lib/permissoes";
 import { executarTurno } from "@/lib/atomic/orquestrador";
 import { ErroModelo, type Conteudo } from "@/lib/atomic/modelo";
+import { executarProposta } from "@/lib/atomic/propostas";
+import {
+  VALIDADE_PROPOSTA_MS,
+  type PropostaRascunho,
+  type PropostaView,
+  type StatusProposta,
+  type TipoProposta,
+} from "@/lib/atomic/tipos";
 
 const LIMITE_MENSAGENS_POR_HORA = 30;
 
@@ -17,6 +25,9 @@ const mensagemSchema = z.object({
     .min(1, "Digite uma mensagem.")
     .max(1000, "Mensagem muito longa (máximo de 1000 caracteres)."),
 });
+
+// Valores editados pela pessoa no formulário (texto simples, com limite de tamanho).
+const valoresSchema = z.record(z.string(), z.string().max(200));
 
 // Porta de entrada única: exige login E a permissão "usarAtomic".
 async function sessaoAtomic() {
@@ -47,7 +58,39 @@ function mensagemDeErro(e: unknown, mostrarDetalhe: boolean): string {
   return generica + (dev && e instanceof Error ? ` (diagnóstico: ${e.message.slice(0, 300)})` : "");
 }
 
-export async function enviarMensagem(dados: unknown): Promise<{ chatId?: string; resposta?: string; erro?: string }> {
+// Converte registros do banco no formato que a tela usa.
+type LinhaProposta = {
+  id: string;
+  type: TipoProposta;
+  data: unknown;
+  summary: string;
+  status: StatusProposta;
+  result: string | null;
+  createdAt: Date;
+};
+
+async function montarViews(linhas: LinhaProposta[]): Promise<PropostaView[]> {
+  if (linhas.length === 0) return [];
+  const categorias = linhas.some((l) => l.type === "DESPESA")
+    ? await prisma.expenseCategory.findMany({ where: { active: true }, orderBy: { name: "asc" }, select: { id: true, name: true } })
+    : undefined;
+  const agora = Date.now();
+
+  return linhas.map((l) => ({
+    id: l.id,
+    tipo: l.type,
+    dados: (l.data ?? {}) as Record<string, string>,
+    resumo: l.summary,
+    status: l.status,
+    resultado: l.result,
+    expirada: l.status === "PENDENTE" && l.type !== "FIDELIDADE" && agora - l.createdAt.getTime() > VALIDADE_PROPOSTA_MS,
+    categorias: l.type === "DESPESA" ? categorias : undefined,
+  }));
+}
+
+export async function enviarMensagem(
+  dados: unknown
+): Promise<{ chatId?: string; resposta?: string; propostas?: PropostaView[]; erro?: string }> {
   const sessao = await sessaoAtomic();
   if (!sessao) return { erro: "Acesso negado." };
 
@@ -82,18 +125,92 @@ export async function enviarMensagem(dados: unknown): Promise<{ chatId?: string;
   }));
 
   try {
-    const resposta = await executarTurno({ chatId: chat.id, ctx: sessao, historico });
-    await prisma.$transaction([
+    // Coletor: as ferramentas "propor_*" depositam aqui os formulários pedidos pela IA.
+    const rascunhos: PropostaRascunho[] = [];
+    const resposta = await executarTurno({
+      chatId: chat.id,
+      ctx: { ...sessao, propostas: rascunhos },
+      historico,
+    });
+
+    const [mensagemModelo] = await prisma.$transaction([
       prisma.atomicMessage.create({ data: { chatId: chat.id, role: "MODEL", content: resposta } }),
       prisma.atomicChat.update({ where: { id: chat.id }, data: { updatedAt: new Date() } }),
     ]);
-    return { chatId: chat.id, resposta };
+
+    // Só AGORA os formulários são guardados (ainda PENDENTES: nada foi gravado no negócio).
+    const criadas = await Promise.all(
+      rascunhos.map((r) =>
+        prisma.atomicProposal.create({
+          data: {
+            chatId: chat.id,
+            messageId: mensagemModelo.id,
+            userId: sessao.userId,
+            type: r.tipo,
+            data: r.dados,
+            summary: r.resumo,
+          },
+        })
+      )
+    );
+
+    return { chatId: chat.id, resposta, propostas: await montarViews(criadas) };
   } catch (e) {
     console.error("[atomic] erro ao responder:", e);
     const verDetalhe = process.env.NODE_ENV !== "production" || sessao.role === "OWNER";
     return { chatId: chat.id, erro: mensagemDeErro(e, verDetalhe) };
   }
 }
+
+// ─────────────── Confirmação humana: o ÚNICO caminho que grava dados ───────────────
+
+export async function confirmarProposta(id: string, valores: unknown): Promise<{ sucesso?: true; mensagem?: string; erro?: string }> {
+  const sessao = await sessaoAtomic();
+  if (!sessao) return { erro: "Acesso negado." };
+
+  const v = valoresSchema.safeParse(valores);
+  if (!v.success) return { erro: "Valores inválidos no formulário." };
+
+  // O formulário precisa existir e pertencer a quem está confirmando.
+  const proposta = await prisma.atomicProposal.findFirst({ where: { id, userId: sessao.userId } });
+  if (!proposta) return { erro: "Formulário não encontrado." };
+  if (proposta.type === "FIDELIDADE") return { erro: "Este painel não precisa de confirmação." };
+  if (proposta.status !== "PENDENTE") return { erro: "Este formulário já foi decidido." };
+  if (Date.now() - proposta.createdAt.getTime() > VALIDADE_PROPOSTA_MS) {
+    return { erro: "Este formulário expirou. Peça novamente à ATOMIC." };
+  }
+
+  // Trava contra clique duplo: só UMA chamada consegue passar de PENDENTE para EXECUTANDO.
+  const trava = await prisma.atomicProposal.updateMany({ where: { id, status: "PENDENTE" }, data: { status: "EXECUTANDO" } });
+  if (trava.count !== 1) return { erro: "Este formulário já está sendo processado." };
+
+  let resultado: { ok: boolean; mensagem: string } = { ok: false, mensagem: "Não foi possível concluir. Tente novamente." };
+  try {
+    resultado = await executarProposta(proposta.type, v.data);
+  } finally {
+    // Sucesso: encerra. Falha: volta a PENDENTE para a pessoa corrigir e tentar de novo.
+    await prisma.atomicProposal.update({
+      where: { id },
+      data: resultado.ok
+        ? { status: "CONFIRMADA", confirmed: v.data, result: resultado.mensagem, decidedAt: new Date() }
+        : { status: "PENDENTE" },
+    });
+  }
+
+  return resultado.ok ? { sucesso: true, mensagem: resultado.mensagem } : { erro: resultado.mensagem };
+}
+
+export async function cancelarProposta(id: string) {
+  const sessao = await sessaoAtomic();
+  if (!sessao) return { erro: "Acesso negado." };
+  await prisma.atomicProposal.updateMany({
+    where: { id, userId: sessao.userId, status: "PENDENTE" },
+    data: { status: "CANCELADA", decidedAt: new Date() },
+  });
+  return { sucesso: true };
+}
+
+// ─────────────── Conversas ───────────────
 
 export async function listarConversas() {
   const sessao = await sessaoAtomic();
@@ -114,7 +231,21 @@ export async function carregarConversa(chatId: string) {
     where: { id: chatId, userId: sessao.userId },
     include: { messages: { orderBy: { createdAt: "asc" }, take: 200 } },
   });
-  return (chat?.messages ?? []).map((m) => ({ role: m.role, content: m.content }));
+  const mensagens = chat?.messages ?? [];
+
+  const linhas = mensagens.length
+    ? await prisma.atomicProposal.findMany({
+        where: { userId: sessao.userId, messageId: { in: mensagens.map((m) => m.id) } },
+        orderBy: { createdAt: "asc" },
+      })
+    : [];
+  const views = await montarViews(linhas);
+
+  return mensagens.map((m) => ({
+    role: m.role,
+    content: m.content,
+    propostas: views.filter((_, i) => linhas[i].messageId === m.id),
+  }));
 }
 
 export async function excluirConversa(chatId: string) {
