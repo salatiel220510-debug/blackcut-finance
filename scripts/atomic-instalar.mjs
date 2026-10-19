@@ -1,4 +1,4 @@
-// Instalador da ATOMIC — Fases 1 e 2.
+// Instalador da ATOMIC — Fases 1, 2 e 4 (segurança).
 // Aplica as pequenas alterações nos arquivos que JÁ EXISTEM no projeto.
 //
 // Como usar (no terminal do VS Code, na raiz do projeto):
@@ -261,7 +261,12 @@ const NOVOS = [
   "src/app/atomic/proposta-card.tsx",
   "src/lib/atomic/tipos.ts",
   "src/lib/atomic/propostas.ts",
+  "src/lib/atomic/seguranca.ts",
+  "src/app/atomic/auditoria/page.tsx",
+  "src/app/atomic/auditoria/actions.ts",
+  "src/app/atomic/auditoria/limpar.tsx",
   "scripts/atomic-smoke.ts",
+  "scripts/atomic-testes.ts",
 ];
 for (const rel of NOVOS) {
   if (!fs.existsSync(path.join(RAIZ, rel))) registrar("FALTA", rel, "copie este arquivo do pacote para o projeto");
@@ -283,5 +288,6 @@ if (problemas.length > 0) {
   console.log("  3) npx prisma migrate dev --name add_atomic_fase2");
   console.log("  4) npx prisma generate");
   console.log("  5) npx tsc --noEmit");
-  console.log("  6) npm run dev");
+  console.log("  6) npx tsx scripts/atomic-testes.ts   (testes automáticos de segurança)");
+  console.log("  7) npm run dev");
 }

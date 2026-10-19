@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import IconeAtomo from "@/components/IconeAtomo";
 import PropostaCard from "./proposta-card";
 import type { PropostaView } from "@/lib/atomic/tipos";
@@ -18,7 +19,7 @@ const SUGESTOES = [
   "Abrir o cartão fidelidade",
 ];
 
-export default function ChatAtomic({ conversasIniciais }: { conversasIniciais: Conversa[] }) {
+export default function ChatAtomic({ conversasIniciais, ehDono = false }: { conversasIniciais: Conversa[]; ehDono?: boolean }) {
   const [conversas, setConversas] = useState(conversasIniciais);
   const [chatId, setChatId] = useState<string | null>(null);
   const [mensagens, setMensagens] = useState<Mensagem[]>([]);
@@ -96,12 +97,19 @@ export default function ChatAtomic({ conversasIniciais }: { conversasIniciais: C
             </p>
           </div>
         </div>
-        <button
-          onClick={() => setMenuAberto(true)}
-          className="md:hidden border border-gold-dark rounded-lg px-3 py-1.5 text-gold text-sm shrink-0"
-        >
-          Conversas
-        </button>
+        <div className="flex items-center gap-2 shrink-0">
+          {ehDono && (
+            <Link href="/atomic/auditoria" className="border border-gold-dark rounded-lg px-3 py-1.5 text-gold text-sm">
+              Auditoria
+            </Link>
+          )}
+          <button
+            onClick={() => setMenuAberto(true)}
+            className="md:hidden border border-gold-dark rounded-lg px-3 py-1.5 text-gold text-sm"
+          >
+            Conversas
+          </button>
+        </div>
       </header>
 
       <div className="grid md:grid-cols-[1fr_16rem] gap-4">

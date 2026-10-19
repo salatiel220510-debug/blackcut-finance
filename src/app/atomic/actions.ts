@@ -7,6 +7,7 @@ import { temPermissao } from "@/lib/permissoes";
 import { executarTurno } from "@/lib/atomic/orquestrador";
 import { ErroModelo, type Conteudo } from "@/lib/atomic/modelo";
 import { executarProposta } from "@/lib/atomic/propostas";
+import { atomicDesligada, decidirLimite, LIMITE_CONFIRMACOES_POR_HORA } from "@/lib/atomic/seguranca";
 import {
   VALIDADE_PROPOSTA_MS,
   type PropostaRascunho,
@@ -14,8 +15,6 @@ import {
   type StatusProposta,
   type TipoProposta,
 } from "@/lib/atomic/tipos";
-
-const LIMITE_MENSAGENS_POR_HORA = 30;
 
 const mensagemSchema = z.object({
   chatId: z.string().trim().min(1).nullish(),
@@ -31,6 +30,7 @@ const valoresSchema = z.record(z.string(), z.string().max(200));
 
 // Porta de entrada única: exige login E a permissão "usarAtomic".
 async function sessaoAtomic() {
+  if (atomicDesligada()) return null; // interruptor de emergência (ATOMIC_DESLIGADA=true)
   const session = await auth();
   if (!session?.user) return null;
   const role = (session.user as any).role as string;
@@ -91,6 +91,7 @@ async function montarViews(linhas: LinhaProposta[]): Promise<PropostaView[]> {
 export async function enviarMensagem(
   dados: unknown
 ): Promise<{ chatId?: string; resposta?: string; propostas?: PropostaView[]; erro?: string }> {
+  if (atomicDesligada()) return { erro: "A ATOMIC está temporariamente desativada." };
   const sessao = await sessaoAtomic();
   if (!sessao) return { erro: "Acesso negado." };
 
@@ -98,14 +99,17 @@ export async function enviarMensagem(
   if (!validacao.success) return { erro: validacao.error.issues[0].message };
   const { chatId, texto } = validacao.data;
 
-  // Limite de uso por usuário (protege a cota gratuita e evita abuso).
-  const desde = new Date(Date.now() - 60 * 60 * 1000);
-  const usadas = await prisma.atomicMessage.count({
-    where: { role: "USER", createdAt: { gte: desde }, chat: { userId: sessao.userId } },
-  });
-  if (usadas >= LIMITE_MENSAGENS_POR_HORA) {
-    return { erro: "Limite de mensagens por hora atingido. Tente novamente mais tarde." };
-  }
+  // Limites de uso: por hora e por dia (por usuário) e por dia (toda a barbearia).
+  // Protegem a cota gratuita do Google e evitam abuso.
+  const umaHora = new Date(Date.now() - 60 * 60 * 1000);
+  const umDia = new Date(Date.now() - 24 * 60 * 60 * 1000);
+  const [usadasHora, usadasDia, usadasGlobal] = await Promise.all([
+    prisma.atomicMessage.count({ where: { role: "USER", createdAt: { gte: umaHora }, chat: { userId: sessao.userId } } }),
+    prisma.atomicMessage.count({ where: { role: "USER", createdAt: { gte: umDia }, chat: { userId: sessao.userId } } }),
+    prisma.atomicMessage.count({ where: { role: "USER", createdAt: { gte: umDia } } }),
+  ]);
+  const bloqueio = decidirLimite({ usadasHora, usadasDia, usadasGlobal });
+  if (bloqueio) return { erro: bloqueio };
 
   // A conversa precisa pertencer ao usuário logado (evita acessar chat de outra pessoa).
   let chat = chatId ? await prisma.atomicChat.findFirst({ where: { id: chatId, userId: sessao.userId } }) : null;
@@ -178,6 +182,14 @@ export async function confirmarProposta(id: string, valores: unknown): Promise<{
   if (proposta.status !== "PENDENTE") return { erro: "Este formulário já foi decidido." };
   if (Date.now() - proposta.createdAt.getTime() > VALIDADE_PROPOSTA_MS) {
     return { erro: "Este formulário expirou. Peça novamente à ATOMIC." };
+  }
+
+  // Freio: muitas confirmações em pouco tempo indicam erro ou uso indevido.
+  const confirmadasNaHora = await prisma.atomicProposal.count({
+    where: { userId: sessao.userId, status: "CONFIRMADA", decidedAt: { gte: new Date(Date.now() - 60 * 60 * 1000) } },
+  });
+  if (confirmadasNaHora >= LIMITE_CONFIRMACOES_POR_HORA) {
+    return { erro: "Muitas confirmações em pouco tempo. Aguarde alguns minutos." };
   }
 
   // Trava contra clique duplo: só UMA chamada consegue passar de PENDENTE para EXECUTANDO.

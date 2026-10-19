@@ -6,6 +6,7 @@ import { sessaoAberta } from "@/lib/caixaSessao";
 import { limitesDoDiaEspecifico, diaBrasilDeData } from "@/lib/datasBrasil";
 import type { DeclaracaoFerramenta } from "./modelo";
 import type { PropostaRascunho } from "./tipos";
+import { erroPeriodo, limpar, normalizar, type Periodo } from "./seguranca";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Regras de segurança desta camada (nunca relaxar sem revisão):
@@ -47,17 +48,8 @@ const arred = (n: number) => Number(n.toFixed(2));
 const num = (v: unknown) => Number(v ?? 0);
 
 const dataSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Use o formato AAAA-MM-DD.");
-type Periodo = { data_inicio: string; data_fim: string };
 
 const camposPeriodo = { data_inicio: dataSchema, data_fim: dataSchema };
-
-// Validação do intervalo de datas (executada no início de cada ferramenta que recebe período).
-function erroPeriodo(p: Periodo): string | null {
-  if (isNaN(Date.parse(p.data_inicio)) || isNaN(Date.parse(p.data_fim))) return "Data inválida.";
-  if (p.data_inicio > p.data_fim) return "data_inicio não pode ser posterior a data_fim.";
-  if ((Date.parse(p.data_fim) - Date.parse(p.data_inicio)) / 86_400_000 > 366) return "O período máximo é de 366 dias.";
-  return null;
-}
 
 const PARAMETROS_PERIODO = {
   data_inicio: { type: "string", description: "Data inicial no formato AAAA-MM-DD (horário de Brasília)." },
@@ -83,7 +75,6 @@ function exibirFormulario(ctx: Contexto, proposta: PropostaRascunho, instrucao =
   return { status: "formulario_exibido_ao_usuario", instrucao };
 }
 
-const normalizar = (t: string) => t.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
 
 const LISTA: Ferramenta[] = [
   definir({
@@ -459,23 +450,6 @@ const LISTA: Ferramenta[] = [
 
 const REGISTRO = new Map(LISTA.map((t) => [t.declaracao.name, t]));
 export const declaracoes = () => LISTA.map((t) => t.declaracao);
-
-// Rede de segurança final: remove qualquer chave que sugira dado pessoal ou texto livre,
-// mesmo que uma ferramenta futura a inclua por engano.
-const CAMPO_SENSIVEL = /cliente|observa|descri|e-?mail|senha|password|hash|token|telefone|phone/i;
-
-function limpar(v: unknown): unknown {
-  if (v instanceof Date) return v.toISOString();
-  if (Array.isArray(v)) return v.map(limpar);
-  if (v && typeof v === "object") {
-    return Object.fromEntries(
-      Object.entries(v as Record<string, unknown>)
-        .filter(([k]) => !CAMPO_SENSIVEL.test(k))
-        .map(([k, x]) => [k, limpar(x)])
-    );
-  }
-  return v;
-}
 
 const LIMITE_CARACTERES = 8000;
 
